@@ -18,12 +18,8 @@ module.exports = (client) => {
 
       const embed = new EmbedBuilder()
         .setColor(client.config.color)
-        .setAuthor({
-          name: `Queue Concluded`,
-          iconURL: client.user.displayAvatarURL(),
-        })
         .setDescription(
-          `Enjoying music with me? Consider inviting me! [Click Here](${client.config.invite})`
+          `Queue ended`
         );
 
       channel.send({ embeds: [embed] }).catch(() => {});
