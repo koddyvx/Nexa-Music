@@ -1,24 +1,29 @@
+const { EmbedBuilder } = require("discord.js");
+
 module.exports = {
-    name: 'stop',
-    description: 'Stop the music and clears the queue',
+    name: "stop",
+    description: "Stop the music and disconnect the bot",
     inVc: true,
     sameVc: true,
     player: true,
+
     run: async (client, interaction) => {
         const player = client.riffy.players.get(interaction.guildId);
 
-        if (!player.queue.size && !player.queue.current) {
-            return interaction.reply({ content: '❌ | There is nothing playing right now.', ephemeral: true });
+        if (!player) {
+            return interaction.reply({
+                content: "❌ | There is no music playing.",
+                ephemeral: true,
+            });
         }
 
-        player.queue.clear();
+        player.destroy();
 
-        player.stop();
-
-        return interaction.reply(`⏹️ | Stopped the music and cleared the queue.`);
+        return interaction.reply({
+            content: "⏹️ | Stopped the music and left the voice channel.",
+        });
     },
 };
-
 /**
  * Project: Nexa Music
  * Author: KoDdy
@@ -27,3 +32,4 @@ module.exports = {
  * modified without permission. For more information, contact us at
  * https://discord.gg/fbu64BmPFD
  */
+
