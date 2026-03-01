@@ -5,6 +5,7 @@ module.exports = {
     engine: "ytsearch",
     color: "#FF0000",
     mongodburl: "-",
+    geniusToken: "-",
     developers: ["-"],
     sharding: false,
     database: false,
@@ -29,3 +30,4 @@ module.exports = {
  * https://discord.gg/fbu64BmPFD
 
  */
+
