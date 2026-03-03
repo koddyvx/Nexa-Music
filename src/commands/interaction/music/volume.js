@@ -74,7 +74,7 @@ module.exports = {
       )
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `🔊 Volume has been set to **${volume}%**.`
+          `Volume has been set to **${volume}%**.`
         )
       );
 

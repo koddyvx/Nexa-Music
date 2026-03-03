@@ -87,7 +87,8 @@ module.exports = {
         );
 
       return interaction.editReply({
-        components: [noResults]
+        components: [noResults],
+        flags: MessageFlags.IsComponentsV2
       });
     }
 
@@ -114,7 +115,9 @@ module.exports = {
         );
 
       await interaction.editReply({
-        components: [playlistContainer]
+        components: [playlistContainer],
+        flags: MessageFlags.IsComponentsV2
+
       });
 
     } else {
@@ -148,7 +151,8 @@ module.exports = {
       }
 
       await interaction.editReply({
-        components: [trackContainer]
+        components: [trackContainer],
+        flags: MessageFlags.IsComponentsV2
       });
     }
 
