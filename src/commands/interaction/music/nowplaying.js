@@ -1,69 +1,99 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
+} = require("discord.js");
 
 function formatTime(ms) {
-    if (!ms || ms === 0) return "00:00";
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+  if (!ms || ms === 0) return "00:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-    if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-            .toString()
-            .padStart(2, "0")}`;
-    } else {
-        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    }
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  } else {
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
 }
 
-function createProgressBar(current, total, size = 20) {
-    const percent = total === 0 ? 0 : current / total;
-    const progress = Math.round(size * percent);
+function createProgressBar(current, total, size = 18) {
+  const percent = total === 0 ? 0 : current / total;
+  const progress = Math.round(size * percent);
 
-    const bar =
-        "▬".repeat(progress) + "🔘" + "▬".repeat(size - progress);
-
-    return bar;
+  return "▬".repeat(progress) + "●" + "▬".repeat(size - progress);
 }
 
 module.exports = {
-    name: "nowplaying",
-    description: "Shows the currently playing track",
-    inVc: true,
-    sameVc: true,
-    player: true,
+  name: "nowplaying",
+  description: "Shows the currently playing track",
+  inVc: true,
+  sameVc: true,
+  player: true,
 
-    run: async (client, interaction) => {
-        const player = client.riffy.players.get(interaction.guildId);
+  run: async (client, interaction) => {
+    const player = client.riffy.players.get(interaction.guildId);
 
-        if (!player || !player.current) {
-            return interaction.reply({
-                content: "❌ | here is nothing playing right now.",
-                ephemeral: true,
-            });
-        }
+    if (!player || !player.current) {
+      const nothingPlaying = new ContainerBuilder()
+        .setAccentColor(0xFF0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Nothing Playing")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "There is no active track in this server."
+          )
+        );
 
-        const track = player.current;
+      return interaction.reply({
+        components: [nothingPlaying],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
 
-        const currentTime = player.position;
-        const totalTime = track.info.length;
+    const track = player.current;
+    const currentTime = player.position;
+    const totalTime = track.info.length;
 
-        const progressBar = createProgressBar(currentTime, totalTime, 18);
+    const progressBar = createProgressBar(currentTime, totalTime, 18);
 
-        const embed = new EmbedBuilder()
-            .setColor(client.config.color)
-            .setTitle("Now Playing")
-            .setDescription(
-                `**[${track.info.title}](${track.info.uri})**\n` +
-                `by **${track.info.author}**\n\n` +
-                `\`${formatTime(currentTime)}\` ${progressBar} \`${formatTime(totalTime)}\``
-            )
-            .setFooter({ text: `Requested by ${track.info.requester?.username || "Unknown"}` });
+    const container = new ContainerBuilder()
+      .setAccentColor(client.config.color || 0x2B2D31)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("### Now Playing")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder()
+          .setDivider(true)
+          .setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**[${track.info.title}](${track.info.uri})**\n` +
+          `by **${track.info.author}**\n\n` +
+          `\`${formatTime(currentTime)}\` ${progressBar} \`${formatTime(totalTime)}\`\n\n` +
+          `Requested by ${track.info.requester?.username || "Unknown"}`
+        )
+      );
 
-        if (track.info.thumbnail) {
-            embed.setThumbnail(track.info.thumbnail);
-        }
+    if (track.info.thumbnail) {
+      container.setThumbnail(track.info.thumbnail);
+    }
 
-        return interaction.reply({ embeds: [embed] });
-    },
+    return interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
+    });
+  }
 };
