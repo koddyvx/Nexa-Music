@@ -1,69 +1,163 @@
-const { EmbedBuilder, ApplicationCommandOptionType } = require('discord.js');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
+  ApplicationCommandOptionType
+} = require("discord.js");
 
 module.exports = {
-    name: 'play',
-    description: 'play a track',
-    inVoice: true,
-    options: [
-        {
-            name: 'query',
-            description: 'The query to search for',
-            type: ApplicationCommandOptionType.String,
-            required: true,
-        }
-    ],
+  name: "play",
+  description: "Play a track",
+  inVoice: true,
+  options: [
+    {
+      name: "query",
+      description: "The query to search for",
+      type: ApplicationCommandOptionType.String,
+      required: true
+    }
+  ],
 
-    run: async (client, interaction, args) => {
-        const query = interaction.options.getString('query');
+  run: async (client, interaction) => {
+    const query = interaction.options.getString("query");
+    const voiceChannel = interaction.member.voice?.channel;
 
-        const player = client.riffy.createConnection({
-            guildId: interaction.guild.id,
-            voiceChannel: interaction.member.voice.channel.id,
-            textChannel: interaction.channel.id,
-            deaf: true,
-        })
+    if (!voiceChannel) {
+      const notInVC = new ContainerBuilder()
+        .setAccentColor(0xFF0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Voice Channel Required")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "You must be connected to a voice channel to use this command."
+          )
+        );
 
-        const resolve = await client.riffy.resolve({ query: query, requester: interaction.member });
-        const { loadType, tracks, playlistInfo } = resolve;
+      return interaction.reply({
+        components: [notInVC],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
 
-        if (loadType === 'playlist') {
-            for (const track of resolve.tracks) {
-                track.info.requester = interaction.member;
-                player.queue.add(track);
-            }
+    await interaction.deferReply({
+      flags: MessageFlags.IsComponentsV2
+    });
 
-            const embed = new EmbedBuilder()
-                .setDescription(`Added ${tracks.length} songs from ${playlistInfo.name} playlist.`)
-                .setColor(client.config.color);
+    let player = client.riffy.players.get(interaction.guild.id);
 
-            await interaction.reply({ embeds: [embed] });
+    if (!player) {
+      player = await client.riffy.createConnection({
+        guildId: interaction.guild.id,
+        voiceChannel: voiceChannel.id,
+        textChannel: interaction.channel.id,
+        deaf: true
+      });
+    }
 
-            if (!player.playing && !player.paused) return player.play();
+    const resolve = await client.riffy.resolve({
+      query,
+      requester: interaction.member
+    });
 
-        } else if (loadType === 'search' || loadType === 'track') {
-            const track = tracks.shift();
-            track.info.requester = interaction.member;
+    const { loadType, tracks, playlistInfo } = resolve;
 
-            player.queue.add(track);
-            const formatString = (str, maxLength) => (str.length > maxLength ? str.substr(0, maxLength - 3) + "..." : str);
-            const trackTitle = formatString(track.info.title, 30).replace(/ - Topic$/, "") || "Unknown";
-            const trackAuthor = formatString(track.info.author, 25).replace(/ - Topic$/, "") || "Unknown";
+    if (!tracks || !tracks.length) {
+      const noResults = new ContainerBuilder()
+        .setAccentColor(0xFF0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### No Results Found")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "There were no results found for your query."
+          )
+        );
 
-            const embed = new EmbedBuilder()
-                .setAuthor({name: 'Enqueued Track'})
-                .setDescription(`**Added [${trackTitle}](${track.info.uri}) - [${trackAuthor}](${track.info.uri}) to the queue  at position: #${track.info.position}.**`)
-                .setThumbnail(track.info.thumbnail)
-                .setColor(client.config.color);
+      return interaction.editReply({
+        components: [noResults]
+      });
+    }
 
-            await interaction.reply({ embeds: [embed] });
+    if (loadType === "playlist") {
+      for (const track of tracks) {
+        track.info.requester = interaction.member;
+        player.queue.add(track);
+      }
 
-            if (!player.playing && !player.paused) return player.play();
+      const playlistContainer = new ContainerBuilder()
+        .setAccentColor(client.config.color || 0x2B2D31)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Playlist Added")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `Added ${tracks.length} tracks from ${playlistInfo.name} to the queue.`
+          )
+        );
 
-        } else {
-            return interaction.reply(`There were no results found for your query.`);
-        }
-    },
+      await interaction.editReply({
+        components: [playlistContainer]
+      });
+
+    } else {
+      const track = tracks.shift();
+      track.info.requester = interaction.member;
+
+      player.queue.add(track);
+
+      const position = player.queue.size;
+
+      const trackContainer = new ContainerBuilder()
+        .setAccentColor(client.config.color || 0x2B2D31)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Track Enqueued")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `**[${track.info.title}](${track.info.uri})**\n` +
+            `by **${track.info.author}**\n\n` +
+            `Position in queue: #${position}`
+          )
+        );
+
+      if (track.info.thumbnail) {
+        trackContainer.setThumbnail(track.info.thumbnail);
+      }
+
+      await interaction.editReply({
+        components: [trackContainer]
+      });
+    }
+
+    if (!player.playing && !player.paused) {
+      player.play();
+    }
+  }
 };
+
 /**
  * Project: Nexa Music
  * Author: KoDdy, Razi
