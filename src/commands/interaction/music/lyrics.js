@@ -70,5 +70,4 @@ module.exports = {
  * This code is the property of Infinity and may not be reproduced or
  * modified without permission. For more information, contact us at
  * https://discord.gg/fbu64BmPFD
-
  */
