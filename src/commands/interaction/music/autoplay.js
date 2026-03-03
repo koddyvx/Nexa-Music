@@ -62,7 +62,7 @@ module.exports = {
 
     return interaction.reply({
       components: [updated],
-      flags: MessageFlags.IsComponentsV2
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
     });
   },
 };
