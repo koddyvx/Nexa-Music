@@ -11,7 +11,7 @@ const client = new Client({
         "DirectMessages",
     ],
 });
-
+require("dotenv").config();
 client.config = require("./settings/config.js");
 client.commands = new Collection();
 client.aliases = new Collection();
@@ -26,13 +26,40 @@ client.riffy = new Riffy(client, client.config.nodes, {
     restVersion: "v4",
 });
 
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise);
+    console.error("Reason:", reason);
+});
 
+
+process.on("uncaughtException", (err) => {
+    console.error("Uncaught Exception:", err);
+});
+
+
+client.on("error", (err) => {
+    console.error("Client Error:", err);
+});
+
+
+client.on("shardError", (err, shardId) => {
+    console.error(`Shard ${shardId} Error:`, err);
+});
+
+client.riffy.on("nodeError", (node, error) => {
+    console.error(`Lavalink Node Error [${node.name}]:`, error);
+});
+
+
+process.on("warning", (warning) => {
+    console.warn("Process Warning:", warning.name, warning.message);
+});
 
 ["event", "riffy", "slashcommand"].forEach(file => {
     require(`./handlers/${file}`)(client);
 });
 
-client.login(process.env.TOKEN);
+client.login(process.env.TOKEN || "");
 
 module.exports = client;
 

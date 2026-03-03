@@ -1,6 +1,7 @@
 const {
   ContainerBuilder,
   TextDisplayBuilder,
+  SectionBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
   MessageFlags,
@@ -26,7 +27,7 @@ module.exports = {
 
     if (!voiceChannel) {
       const notInVC = new ContainerBuilder()
-        .setAccentColor(0xFF0000)
+        .setAccentColor(client.config.color)
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent("### Voice Channel Required")
         )
@@ -71,7 +72,7 @@ module.exports = {
 
     if (!tracks || !tracks.length) {
       const noResults = new ContainerBuilder()
-        .setAccentColor(0xFF0000)
+        .setAccentColor(client.config.color0)
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent("### No Results Found")
         )
@@ -127,7 +128,8 @@ module.exports = {
       player.queue.add(track);
 
       const position = player.queue.size;
-
+      const thumbnaila = track.info.thumbnail || "https://i.imgur.com/AfFp7pu.png";
+       
       const trackContainer = new ContainerBuilder()
         .setAccentColor(client.config.color || 0x2B2D31)
         .addTextDisplayComponents(
@@ -138,17 +140,17 @@ module.exports = {
             .setDivider(true)
             .setSpacing(SeparatorSpacingSize.Small)
         )
+        .addSectionComponents(new SectionBuilder()
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             `**[${track.info.title}](${track.info.uri})**\n` +
             `by **${track.info.author}**\n\n` +
             `Position in queue: #${position}`
           )
-        );
+        ).setThumbnailAccessory(th => th.setDescription('nexa').setURL(thumbnaila)));
 
-      if (track.info.thumbnail) {
-        trackContainer.setThumbnail(track.info.thumbnail);
-      }
+
+      
 
       await interaction.editReply({
         components: [trackContainer],

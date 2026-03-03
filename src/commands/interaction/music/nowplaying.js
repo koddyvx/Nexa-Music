@@ -3,7 +3,8 @@ const {
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  MessageFlags
+  MessageFlags,
+  SectionBuilder
 } = require("discord.js");
 
 function formatTime(ms) {
@@ -67,7 +68,7 @@ module.exports = {
     const totalTime = track.info.length;
 
     const progressBar = createProgressBar(currentTime, totalTime, 18);
-
+    const thumbnaila = track.info.thumbnail || "https://i.imgur.com/AfFp7pu.png";
     const container = new ContainerBuilder()
       .setAccentColor(client.config.color || 0x2B2D31)
       .addTextDisplayComponents(
@@ -78,6 +79,7 @@ module.exports = {
           .setDivider(true)
           .setSpacing(SeparatorSpacingSize.Small)
       )
+      .addSectionComponents(new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           `**[${track.info.title}](${track.info.uri})**\n` +
@@ -85,12 +87,9 @@ module.exports = {
           `\`${formatTime(currentTime)}\` ${progressBar} \`${formatTime(totalTime)}\`\n\n` +
           `Requested by ${track.info.requester?.username || "Unknown"}`
         )
-      );
+      ).setThumbnailAccessory(th => th.setDescription('nexa').setURL(thumbnaila)));
 
-    if (track.info.thumbnail) {
-      container.setThumbnail(track.info.thumbnail);
-    }
-
+   
     return interaction.reply({
       components: [container],
       flags: MessageFlags.IsComponentsV2

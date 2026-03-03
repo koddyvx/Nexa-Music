@@ -8,8 +8,12 @@ client.on(Events.ClientReady, async () => {
     client.user.setPresence({
         activities: [
             {
-                name: "Comming Soon",
-                type: ActivityType.Watching
+                name: "Nexa Music | /help",
+                type: ActivityType.Custom
+            },
+             {
+                name: "Powered By Infinity",
+                type: ActivityType.Custom
             }
         ],
         status: "idle"

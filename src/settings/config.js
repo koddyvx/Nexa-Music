@@ -1,18 +1,17 @@
 module.exports = { 
-    clientid: "-", //client id of your bot, get it from https://discord.com/developers/applications
+    clientid: "1155162578859851828", //client id of your bot, get it from https://discord.com/developers/applications
     prefix: "-", //prefix of your bot, for example "!" or "n!"
     engine: "ytsearch", //search engine for the play command, options: "ytsearch", "spotify", "soundcloud", "deezer", "applemusic"
-    color: "#FF0000", //color of the ui, in hex format
-    mongodburl: "", //mongodb url for the dashboard, if you don't want to use the dashboard, you can leave it as an empty string
+    color: 0xFF0000, //color of the ui, in hex format
     geniusToken: "", //genius token for lyrics command, get it from https://genius.com/developers
     developers: [""], //array of developer ids, these users will have access to the developer commands and the dashboard
     nodes: [
         {
             name: "nexa-1", //name of the node, can be anything
-            host: "localhost", //host of the lavalink server, if it's on the same machine as the bot, you can use "localhost"
-            password: "youshallnotpass", //password of the lavalink server, get it from your lavalink config
-            port: 2000, //port of the lavalink server, get it from your lavalink config
-            secure: false, //whether the lavalink server is secure (https) or not (http), get it from your lavalink config
+            host: "lava-v4.millohost.my.id", //host of the lavalink server, if it's on the same machine as the bot, you can use "localhost"
+            password: "https://discord.gg/mjS5J2K3ep", //password of the lavalink server, get it from your lavalink config
+            port: 443, //port of the lavalink server, get it from your lavalink config
+            secure: true, //whether the lavalink server is secure (https) or not (http), get it from your lavalink config
         },
     ]
 }
