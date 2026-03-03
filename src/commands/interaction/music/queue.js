@@ -1,41 +1,103 @@
-const { EmbedBuilder } = require('discord.js');
-const ms = require('ms');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
+} = require("discord.js");
+const ms = require("ms");
 
 module.exports = {
-    name: 'queue',
-    description: 'Shows the current queue',
-    inVoice: true,
-    sameVoice: true,
-    player: true,
+  name: "queue",
+  description: "Shows the current queue",
+  inVoice: true,
+  sameVoice: true,
+  player: true,
 
-    run: (client, interaction) => {
-        const player = client.riffy.players.get(interaction.guild.id);
+  run: async (client, interaction) => {
+    const player = client.riffy.players.get(interaction.guild.id);
 
-        const queue = player.queue.length > 9 ? player.queue.slice(0, 9) : player.queue;
+    if (!player || !player.current) {
+      const noPlayer = new ContainerBuilder()
+        .setAccentColor(0xFF0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Nothing Playing")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "There is no active player in this server."
+          )
+        );
 
-        const embed = new EmbedBuilder()
-            .setColor(client.config.color)
-            .setTitle('Now Playing')
-            .setThumbnail(player.current.info.thumbnail)
-            .setDescription(`[${player.current.info.title}](${player.current.info.uri}) [${ms(player.current.info.length)}]`)
-            .setFooter({ text: `Queue length: ${player.queue.length} tracks` });
+      return interaction.reply({
+        components: [noPlayer],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
 
-        if (queue.length)
-            embed.addFields([
-                {
-                    name: 'Up Next',
-                    value: queue
-                        .map(
-                            (track, index) =>
-                                `**${index + 1}.** [${track.info.title}](${track.info.uri})`,
-                        )
-                        .join('\n'),
-                },
-            ]);
+    const queue = player.queue.length > 9
+      ? player.queue.slice(0, 9)
+      : player.queue;
 
-        return interaction.reply({ embeds: [embed] });
-    },
+    const nowPlayingText =
+      `**[${player.current.info.title}](${player.current.info.uri})**\n` +
+      `Duration: ${ms(player.current.info.length)}\n\n` +
+      `Queue Length: ${player.queue.length} tracks`;
+
+    let upNextText = "";
+
+    if (queue.length) {
+      upNextText = queue
+        .map(
+          (track, index) =>
+            `${index + 1}. [${track.info.title}](${track.info.uri})`
+        )
+        .join("\n");
+    } else {
+      upNextText = "No upcoming tracks in the queue.";
+    }
+
+    const container = new ContainerBuilder()
+      .setAccentColor(client.config.color || 0x2B2D31)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("### Now Playing")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder()
+          .setDivider(true)
+          .setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(nowPlayingText)
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder()
+          .setDivider(true)
+          .setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("### Up Next")
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(upNextText)
+      );
+
+    if (player.current.info.thumbnail) {
+      container.setThumbnail(player.current.info.thumbnail);
+    }
+
+    return interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
+    });
+  }
 };
+
 /**
  * Project: Nexa Music
  * Author: KoDdy, Razi
