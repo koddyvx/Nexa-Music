@@ -1,5 +1,4 @@
 module.exports = { 
-    token: "-",  //token of your bot, get it from https://discord.com/developers/applications
     clientid: "-", //client id of your bot, get it from https://discord.com/developers/applications
     prefix: "-", //prefix of your bot, for example "!" or "n!"
     engine: "ytsearch", //search engine for the play command, options: "ytsearch", "spotify", "soundcloud", "deezer", "applemusic"

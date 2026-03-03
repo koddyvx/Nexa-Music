@@ -28,7 +28,7 @@ module.exports = async (client) => {
                 client.slashCommands.set(pull.name, pull);
 
                 commandCount++;
-              //  console.log(`[SLASH] Loaded command: ${pull.name}`);
+         
 
             } catch (err) {
                 console.log(`Couldn't load the slash command ${file}, error: ${err}`);
