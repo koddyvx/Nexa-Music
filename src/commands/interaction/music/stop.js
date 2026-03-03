@@ -1,29 +1,72 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
+} = require("discord.js");
 
 module.exports = {
-    name: "stop",
-    description: "Stop the music and disconnect the bot",
-    inVc: true,
-    sameVc: true,
-    player: true,
+  name: "stop",
+  description: "Stop the music and disconnect the bot",
+  inVc: true,
+  sameVc: true,
+  player: true,
 
-    run: async (client, interaction) => {
-        const player = client.riffy.players.get(interaction.guildId);
+  run: async (client, interaction) => {
+    const player = client.riffy.players.get(interaction.guildId);
 
-        if (!player) {
-            return interaction.reply({
-                content: "❌ | There is no music playing.",
-                ephemeral: true,
-            });
-        }
+    if (!player) {
+      const noPlayer = new ContainerBuilder()
+        .setAccentColor(0xFF0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### No Active Player")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "There is no active music session in this server."
+          )
+        );
 
-        player.destroy();
+      return interaction.reply({
+        components: [noPlayer],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
 
-        return interaction.reply({
-            content: "⏹️ | Stopped the music and left the voice channel.",
-        });
-    },
-};/**
+    const voiceChannelId = player.voiceChannel;
+
+    player.destroy();
+
+    const stopped = new ContainerBuilder()
+      .setAccentColor(client.config.color || 0x2B2D31)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("### Playback Stopped")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder()
+          .setDivider(true)
+          .setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `Music playback has been stopped and disconnected from <#${voiceChannelId}>.`
+        )
+      );
+
+    return interaction.reply({
+      components: [stopped],
+      flags: MessageFlags.IsComponentsV2
+    });
+  },
+};
+
+/**
  * Project: Nexa Music
  * Author: KoDdy, Razi
  * Organization: Infinity
@@ -33,4 +76,3 @@ module.exports = {
  * please contact us through the official support server:
  * https://discord.gg/fbu64BmPFD
  */
-
