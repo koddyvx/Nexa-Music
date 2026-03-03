@@ -1,37 +1,90 @@
-const { ApplicationCommandOptionType, EmbedBuilder } = require('discord.js');
+const {
+  ApplicationCommandOptionType,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
+} = require("discord.js");
 
 module.exports = {
-  name: 'volume',
-  description: 'Set the volume of the player.',
+  name: "volume",
+  description: "Set the volume of the player.",
   inVc: true,
   sameVc: true,
   player: true,
+
   options: [
     {
-      name: 'volume',
-      description: 'The volume which you want to set',
+      name: "volume",
+      description: "The volume you want to set",
       type: ApplicationCommandOptionType.Number,
       required: true,
       min_value: 0,
       max_value: 100,
     },
   ],
-  run: (client, interaction) => {
+
+  run: async (client, interaction) => {
     const player = client.riffy.players.get(interaction.guild.id);
-    if (interaction.user.id !== player.current.info.requester.id)
-      return interaction.reply({ content: `You are not allowed to use this command now as the song is played by another user`, ephemeral: true });
-    const volume = interaction.options.getNumber('volume', true);
+
+    if (!player || !player.current) {
+      const noTrack = new ContainerBuilder()
+        .setAccentColor(0xff0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Nothing Playing")
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            "There is no active track to adjust the volume."
+          )
+        );
+
+      return interaction.reply({
+        components: [noTrack],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
+    }
+
+    if (interaction.user.id !== player.current.info.requester?.id) {
+      return interaction.reply({
+        content:
+          "You are not allowed to change the volume because the current song was requested by another user.",
+        ephemeral: true,
+      });
+    }
+
+    const volume = interaction.options.getNumber("volume", true);
     player.setVolume(volume);
 
-    const embed = new EmbedBuilder()
-      .setColor(client.config.color)
-      .setDescription(`Volume has been set to **${volume}%**.`);
+    const success = new ContainerBuilder()
+      .setAccentColor(client.config.color || 0x2b2d31)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("### Volume Updated")
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder()
+          .setDivider(true)
+          .setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `🔊 Volume has been set to **${volume}%**.`
+        )
+      );
 
-    interaction.reply({
-      embeds: [embed],
+    return interaction.reply({
+      components: [success],
+      flags: MessageFlags.IsComponentsV2,
     });
   },
 };
+
 /**
  * Project: Nexa Music
  * Author: KoDdy, Razi
