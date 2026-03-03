@@ -1,28 +1,77 @@
-const { EmbedBuilder } = require("discord.js")
+const {
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SectionBuilder,
+    ThumbnailBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MessageFlags
+} = require("discord.js");
+
 const { convertTime } = require("../../../utils/convert");
 
 module.exports = (client) => {
-client.riffy.on("trackStart", async (player, track) => {
-    const channel = client.channels.cache.get(player.textChannel);
+    client.riffy.on("trackStart", async (player, track) => {
 
-    const formatString = (str, maxLength) => (str.length > maxLength ? str.substr(0, maxLength - 3) + "..." : str);
-    const trackTitle = formatString(track.info.title || "Unknown", 30).replace(/ - Topic$/, "");
-    const trackAuthor = formatString(track.info.author || "Unknown", 25).replace(/ - Topic$/, "");
-    const trackDuration = track.info.isStream ? "LIVE" : convertTime(track.info.length);
+        const channel = client.channels.cache.get(player.textChannel);
+        if (!channel) return;
 
-    const embed = new EmbedBuilder()
-        .setAuthor({name: 'Now playing'})
-        .setColor(client.config.color)
-        .setThumbnail(track.info.thumbnail)
-        .setDescription(`### [${trackTitle}](${track.info.uri})`)
-        .addFields([
-            { name: `Author:`, value: `${trackAuthor}`, inline: true },
-            { name: `Duration:`, value: `${trackDuration}`, inline: true },
-        ]);
+        const formatString = (str, maxLength) =>
+            str.length > maxLength
+                ? str.substring(0, maxLength - 3) + "..."
+                : str;
 
-    channel.send({ embeds: [embed] });
+        const trackTitle = formatString(
+            track.info.title || "Unknown",
+            40
+        ).replace(/ - Topic$/, "");
+
+        const trackAuthor = formatString(
+            track.info.author || "Unknown",
+            30
+        ).replace(/ - Topic$/, "");
+
+        const trackDuration = track.info.isStream
+            ? "LIVE"
+            : convertTime(track.info.length);
+
+        const thumbnail =
+            track.info.thumbnail;
+
+        const container = new ContainerBuilder()
+                   .setAccentColor(client.config.color)
+            .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    "##  Now Playing"
+                )
+            )
+
+            .addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Small)
+            )
+
+            .addSectionComponents(
+                new SectionBuilder()
+                    .setThumbnailAccessory(
+                        new ThumbnailBuilder().setURL(thumbnail)
+                    )
+                          .addTextDisplayComponents(
+                        new TextDisplayBuilder().setContent(
+                            `### [${trackTitle}](${track.info.uri})\n\n` +
+                            `**Author:** ${trackAuthor}\n` +
+                            `**Duration:** ${trackDuration}`
+                        )
+                    )
+            );
+
+        await channel.send({
+            flags: MessageFlags.IsComponentsV2,
+            components: [container]
+        });
     });
-}
+};
 
 /**
  * Project: Nexa Music
