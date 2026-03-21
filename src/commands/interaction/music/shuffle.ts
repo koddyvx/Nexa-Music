@@ -3,34 +3,33 @@ import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
-  name: "pause",
-  description: "Pause the current track.",
+  name: "shuffle",
+  description: "Shuffle the remaining queue order.",
   inVoice: true,
   sameVoice: true,
   player: true,
-  current: true,
 
   async run(client, interaction) {
     const player = getPlayer(client, interaction.guildId)!;
 
-    if (player.paused) {
+    if (player.queue.length < 2) {
       await interaction.reply(panelReply({
         ephemeral: true,
         panel: {
-          eyebrow: "Playback",
-          title: "Already paused",
-          description: "The current track is already paused.",
+          eyebrow: "Queue",
+          title: "Not enough tracks",
+          description: "Add at least two tracks to the queue before shuffling.",
         },
       }));
       return;
     }
 
-    await player.pause(true);
+    player.queue.shuffle();
     await interaction.reply(panelReply({
       panel: {
-        eyebrow: "Playback",
-        title: "Playback paused",
-        description: "The current track has been paused.",
+        eyebrow: "Queue",
+        title: "Queue shuffled",
+        description: `Shuffled ${player.queue.length} queued tracks.`,
       },
     }));
   },

@@ -6,10 +6,12 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node dist/launcher.js",
+    "start:bot": "node dist/index.js",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@top-gg/sdk": "^3.1.1",
     "discord.js": "^14.21.0",
     "dotenv": "^17.3.1",
     "genius-lyrics-api": "^3.2.1",

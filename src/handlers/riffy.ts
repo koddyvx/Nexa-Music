@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import type { BotEventHandler, NexaClient } from "@/types";
+import { log } from "@/utils/logger";
 
 export default async function loadRiffyEvents(client: NexaClient): Promise<void> {
   let eventCount = 0;
@@ -16,18 +17,17 @@ export default async function loadRiffyEvents(client: NexaClient): Promise<void>
         const handler = typeof imported === "function" ? imported : imported.default;
 
         if (typeof handler !== "function") {
-          console.log(`[WARNING] Riffy event ${file} does not export a function.`);
+          log("warn", "riffy", `${file} does not export a function`);
           continue;
         }
 
         await handler(client);
         eventCount += 1;
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.log(`[ERROR] Couldn't load the riffy event ${file}, error: ${message}`);
+        log("error", "riffy", `Failed to load ${file}`, error);
       }
     }
   }
 
-  console.log(`[RIFFY] Successfully loaded ${eventCount} riffy events.`);
+  log("success", "riffy", `Loaded ${eventCount} Riffy events`);
 }

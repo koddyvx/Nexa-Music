@@ -1,51 +1,37 @@
-import prettyMs from "pretty-ms";
-import { createEmbed } from "@/utils/discord";
 import { getPlayer } from "@/utils/commands";
+import { formatDuration, panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "queue",
-  description: "Shows the current queue",
+  description: "Show the active queue and the next tracks.",
   inVoice: true,
   sameVoice: true,
   player: true,
   current: true,
 
   async run(client, interaction) {
-    const player = getPlayer(client, interaction.guildId);
+    const player = getPlayer(client, interaction.guildId)!;
+    const queue = player.queue.length > 10 ? player.queue.slice(0, 10) : player.queue;
+    const upcoming = queue.length > 0
+      ? queue.map((track, index) => `${index + 1}. ${track.info.title} — ${track.info.author}`).join("\n")
+      : "No tracks are waiting in the queue.";
 
-    if (!player?.current) {
-      await interaction.reply({
-        embeds: [createEmbed(client, "Nothing Playing", "There is no active player in this server.", "Red")],
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const queue = player.queue.length > 9 ? player.queue.slice(0, 9) : player.queue;
-    const upNext =
-      queue.length > 0
-        ? queue.map((track, index) => `${index + 1}. [${track.info.title}](${track.info.uri})`).join("\n")
-        : "No upcoming tracks in the queue.";
-
-    const embed = createEmbed(
-      client,
-      "Queue",
-      [
-        `Now playing: **[${player.current.info.title}](${player.current.info.uri})**`,
-        `Duration: ${prettyMs(player.current.info.length)}`,
-        `Queue length: ${player.queue.length} tracks`,
-        "",
-        "Up next:",
-        upNext,
-      ].join("\n"),
-    );
-
-    if (player.current.info.thumbnail) {
-      embed.setThumbnail(player.current.info.thumbnail);
-    }
-
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply(panelReply({
+      panel: {
+        eyebrow: "Queue",
+        title: "Playback queue",
+        imageUrl: player.current?.info.thumbnail,
+        lines: [
+          `Now playing: ${player.current!.info.title}`,
+          `Duration: ${formatDuration(player.current!.info.length)}`,
+          `Queue size: ${player.queue.length}`,
+          `Loop mode: ${player.loop}`,
+          "Upcoming tracks",
+          upcoming,
+        ],
+      },
+    }));
   },
 };
 

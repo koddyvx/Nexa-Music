@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import type { BotEventHandler, NexaClient } from "@/types";
+import { log } from "@/utils/logger";
 
 export default async function loadEvents(client: NexaClient): Promise<void> {
   let eventCount = 0;
@@ -16,18 +17,17 @@ export default async function loadEvents(client: NexaClient): Promise<void> {
         const handler = typeof imported === "function" ? imported : imported.default;
 
         if (typeof handler !== "function") {
-          console.log(`[WARNING] Event ${file} does not export a function.`);
+          log("warn", "events", `${file} does not export a function`);
           continue;
         }
 
         await handler(client);
         eventCount += 1;
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.log(`[ERROR] Couldn't load the event ${file}, error: ${message}`);
+        log("error", "events", `Failed to load ${file}`, error);
       }
     }
   }
 
-  console.log(`[EVENTS] Successfully loaded ${eventCount} events.`);
+  log("success", "events", `Loaded ${eventCount} Discord events`);
 }

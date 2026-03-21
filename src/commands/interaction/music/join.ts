@@ -1,58 +1,69 @@
-import { ApplicationCommandType } from "discord.js";
-import { createEmbed } from "@/utils/discord";
+import { ApplicationCommandType, type GuildMember } from "discord.js";
+import { panelReply, voiceMention } from "@/utils/discord";
 import { getPlayer } from "@/utils/commands";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "join",
-  description: "Join your current voice channel",
+  description: "Connect the bot to your current voice channel.",
   type: ApplicationCommandType.ChatInput,
 
   async run(client, interaction) {
     if (!interaction.inGuild()) {
-      await interaction.reply({ embeds: [createEmbed(client, "Guild Only", "This command can only be used in a server.", "Red")], ephemeral: true });
+      await interaction.reply(panelReply({
+        ephemeral: true,
+        panel: {
+          eyebrow: "Voice required",
+          title: "Server only",
+          description: "This command can only be used in a server.",
+        },
+      }));
       return;
     }
 
-    const member = interaction.member;
-    const voiceChannel = member && "voice" in member ? member.voice.channel : null;
+    const member = interaction.member as GuildMember;
+    const voiceChannel = member.voice.channel;
 
     if (!voiceChannel) {
-      await interaction.reply({
-        embeds: [createEmbed(client, "Join a Voice Channel", "You must be in a voice channel to use this command.", "Red")],
+      await interaction.reply(panelReply({
         ephemeral: true,
-      });
+        panel: {
+          eyebrow: "Voice required",
+          title: "Join a voice channel",
+          description: "You must join a voice channel before using this command.",
+        },
+      }));
       return;
     }
 
-    try {
-      const existingPlayer = getPlayer(client, interaction.guildId);
+    const existingPlayer = getPlayer(client, interaction.guildId);
 
-      if (existingPlayer) {
-        await interaction.reply({
-          embeds: [createEmbed(client, "Already Connected", `I'm already connected to <#${existingPlayer.voiceChannel}>.`, "Yellow")],
-          ephemeral: true,
-        });
-        return;
-      }
-
-      await client.riffy.createConnection({
-        guildId: interaction.guildId,
-        voiceChannel: voiceChannel.id,
-        textChannel: interaction.channelId,
-        deaf: true,
-      });
-
-      await interaction.reply({
-        embeds: [createEmbed(client, "Connected", `Successfully joined <#${voiceChannel.id}>.`, "Green")],
-      });
-    } catch (error) {
-      console.error("Join Error:", error);
-      await interaction.reply({
-        embeds: [createEmbed(client, "Connection Failed", "Failed to connect to the voice channel. Please try again.", "Red")],
+    if (existingPlayer) {
+      await interaction.reply(panelReply({
         ephemeral: true,
-      });
+        panel: {
+          eyebrow: "Voice state",
+          title: "Already connected",
+          description: `I am already connected to ${voiceMention(existingPlayer.voiceChannel)}.`,
+        },
+      }));
+      return;
     }
+
+    await client.riffy.createConnection({
+      guildId: interaction.guildId,
+      voiceChannel: voiceChannel.id,
+      textChannel: interaction.channelId,
+      deaf: true,
+    });
+
+    await interaction.reply(panelReply({
+      panel: {
+        eyebrow: "Voice state",
+        title: "Connected",
+        description: `Joined ${voiceMention(voiceChannel.id)} successfully.`,
+      },
+    }));
   },
 };
 

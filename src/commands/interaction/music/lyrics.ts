@@ -1,6 +1,6 @@
 import { getLyrics } from "genius-lyrics-api";
-import { createEmbed } from "@/utils/discord";
 import { getPlayer } from "@/utils/commands";
+import { panelEdit } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 function chunkLyrics(text: string, linesPerChunk = 6): string[] {
@@ -16,24 +16,16 @@ function chunkLyrics(text: string, linesPerChunk = 6): string[] {
 
 const command: SlashCommand = {
   name: "lyrics",
-  description: "Auto-updating lyrics for the current track",
+  description: "Show timed lyric pages for the current song.",
   player: true,
   current: true,
 
   async run(client, interaction) {
-    const player = getPlayer(client, interaction.guildId);
-
-    if (!player?.current) {
-      await interaction.reply({
-        embeds: [createEmbed(client, "Nothing Playing", "There is no active track in this server.", "Red")],
-        ephemeral: true,
-      });
-      return;
-    }
+    const player = getPlayer(client, interaction.guildId)!;
+    const track = player.current!;
 
     await interaction.deferReply();
 
-    const track = player.current;
     const lyrics = await getLyrics({
       apiKey: client.config.geniusToken,
       title: track.info.title,
@@ -42,18 +34,14 @@ const command: SlashCommand = {
     });
 
     if (!lyrics) {
-      await interaction.editReply({
-        embeds: [createEmbed(client, "Lyrics Not Found", "Unable to find lyrics for the current track.", "Red")],
-      });
+      await interaction.editReply(panelEdit({ panel: { eyebrow: "Lyrics", title: "Lyrics unavailable", description: "No lyrics were found for the current track." } }));
       return;
     }
 
     const chunks = chunkLyrics(lyrics);
     let index = 0;
 
-    const message = await interaction.editReply({
-      embeds: [createEmbed(client, track.info.title, chunks[index])],
-    });
+    const message = await interaction.editReply(panelEdit({ panel: { eyebrow: "Lyrics", title: track.info.title, description: chunks[index] } }));
 
     const interval = setInterval(async () => {
       if (!player.playing || player.current !== track) {
@@ -67,11 +55,7 @@ const command: SlashCommand = {
         return;
       }
 
-      await message.edit({
-        embeds: [createEmbed(client, track.info.title, chunks[index])],
-      }).catch(() => {
-        clearInterval(interval);
-      });
+      await message.edit(panelEdit({ panel: { eyebrow: "Lyrics", title: track.info.title, description: chunks[index] } })).catch(() => clearInterval(interval));
     }, 5000);
   },
 };

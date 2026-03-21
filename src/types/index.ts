@@ -7,7 +7,8 @@ import type {
   PermissionResolvable,
 } from "discord.js";
 import { Client } from "discord.js";
-import type { Riffy, RiffyNodeConfig, RiffyPlayer, RiffyTrack } from "riffy";
+import type { Api } from "@top-gg/sdk";
+import type { LoopOption, Riffy, RiffyNodeConfig, RiffyPlayer, RiffyTrack } from "riffy";
 
 export interface BotConfig {
   clientid: string;
@@ -26,6 +27,8 @@ export interface ExtendedTrackInfo {
   uri: string;
   thumbnail?: string;
   isStream?: boolean;
+  identifier?: string;
+  sourceName?: string;
   requester?: GuildMember;
 }
 
@@ -33,10 +36,15 @@ export interface ExtendedTrack extends Omit<RiffyTrack, "info"> {
   info: ExtendedTrackInfo;
 }
 
-export interface ExtendedPlayer extends Omit<RiffyPlayer, "current" | "queue" | "autoplay" | "message"> {
+export interface ExtendedPlayer extends Omit<RiffyPlayer, "current" | "previous" | "queue" | "autoplay" | "message" | "loop"> {
   current?: ExtendedTrack;
+  previous?: ExtendedTrack;
+  loop: LoopOption;
   queue: Array<ExtendedTrack> & {
     add(track: ExtendedTrack): void;
+    remove(index: number): ExtendedTrack;
+    clear(): void;
+    shuffle(): void;
     size: number;
   };
   isAutoplay?: boolean;
@@ -46,6 +54,7 @@ export interface ExtendedPlayer extends Omit<RiffyPlayer, "current" | "queue" | 
 
 export interface BaseCommandOptions {
   developerOnly?: boolean;
+  voteOnly?: boolean;
   userPermissions?: PermissionResolvable[];
   clientPermissions?: PermissionResolvable[];
   guildOnly?: boolean;
@@ -54,6 +63,8 @@ export interface BaseCommandOptions {
   player?: boolean;
   current?: boolean;
   category?: string;
+  aliases?: string[];
+  usage?: string;
 }
 
 export interface SlashCommand extends ChatInputApplicationCommandData, BaseCommandOptions {
@@ -62,7 +73,6 @@ export interface SlashCommand extends ChatInputApplicationCommandData, BaseComma
 
 export interface PrefixCommand extends BaseCommandOptions {
   name: string;
-  aliases?: string[];
   description: string;
   run: (client: NexaClient, message: Message, args: string[]) => Promise<unknown> | unknown;
 }
@@ -75,4 +85,5 @@ export class NexaClient extends Client {
   public aliases!: Collection<string, string>;
   public slashCommands!: Collection<string, SlashCommand>;
   public riffy!: Riffy;
+  public topgg?: Api;
 }

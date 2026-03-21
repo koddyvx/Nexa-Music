@@ -1,29 +1,28 @@
-import { createEmbed } from "@/utils/discord";
 import { getPlayer } from "@/utils/commands";
+import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "skip",
-  description: "Skips the current track",
+  description: "Skip the current track.",
   inVoice: true,
   sameVoice: true,
   player: true,
   current: true,
 
   async run(client, interaction) {
-    const player = getPlayer(client, interaction.guildId);
+    const player = getPlayer(client, interaction.guildId)!;
+    const title = player.current!.info.title;
 
-    if (!player?.current) {
-      await interaction.reply({ embeds: [createEmbed(client, "Nothing Playing", "There is no active track to skip.", "Red")], ephemeral: true });
-      return;
-    }
-
-    const skippedTrack = player.current.info.title;
     await player.stop();
 
-    await interaction.reply({
-      embeds: [createEmbed(client, "Track Skipped", `Skipped **${skippedTrack}** and moved to the next track.`)],
-    });
+    await interaction.reply(panelReply({
+      panel: {
+        eyebrow: "Playback",
+        title: "Track skipped",
+        description: `Skipped ${title}.`,
+      },
+    }));
   },
 };
 

@@ -1,89 +1,83 @@
-import { createEmbed, isSendableChannel } from "@/utils/discord";
-import type { ExtendedPlayer, NexaClient } from "@/types";
+import { getPlayer } from "@/utils/commands";
+import { panelMessage } from "@/utils/discord";
+import type { NexaClient } from "@/types";
 
-const LEAVE_TIMEOUT = 60_000;
 const leaveTimers = new Map<string, NodeJS.Timeout>();
+const timeoutMs = 60_000;
 
 export default function registerVoiceStateUpdate(client: NexaClient): void {
   client.on("voiceStateUpdate", async (oldState, newState) => {
-    const player = client.riffy.players.get(oldState.guild.id) as ExtendedPlayer | undefined;
+    const player = getPlayer(client, oldState.guild.id);
 
     if (!player || !client.user) {
       return;
     }
 
-    const botId = client.user.id;
-    const oldBotChannel = oldState.guild.members.me?.voice.channel;
-    const newBotChannel = newState.guild.members.me?.voice.channel;
     const textChannel = client.channels.cache.get(player.textChannel);
+    if (!textChannel || !("send" in textChannel) || typeof textChannel.send !== "function") {
+      return;
+    }
 
-    if (oldBotChannel && oldState.channelId === oldBotChannel.id) {
-      const nonBotMembers = oldBotChannel.members.filter((member) => !member.user.bot);
+    const previousBotChannel = oldState.guild.members.me?.voice.channel;
+    const currentBotChannel = newState.guild.members.me?.voice.channel;
 
-      if (nonBotMembers.size === 0 && !player.paused) {
+    if (previousBotChannel && oldState.channelId === previousBotChannel.id) {
+      const listeners = previousBotChannel.members.filter((member) => !member.user.bot);
+
+      if (listeners.size === 0 && !player.paused) {
         await player.pause(true);
-
-        if (isSendableChannel(textChannel)) {
-          await textChannel.send({
-            embeds: [createEmbed(client, "Music Paused", "Everyone left the voice channel. Waiting 1 minute before stopping.", "Yellow")],
-          });
-        }
+        await textChannel.send(panelMessage({
+          panel: {
+            eyebrow: "Voice state",
+            title: "Playback paused",
+            description: "Everyone left the voice channel. Playback is paused for one minute.",
+          },
+        }));
 
         if (!leaveTimers.has(oldState.guild.id)) {
-          const timeout = setTimeout(async () => {
-            const currentChannel = oldState.guild.members.me?.voice.channel;
-            const stillEmpty = currentChannel ? currentChannel.members.filter((member) => !member.user.bot).size === 0 : true;
+          const timer = setTimeout(async () => {
+            const activeChannel = oldState.guild.members.me?.voice.channel;
+            const stillEmpty = !activeChannel || activeChannel.members.filter((member) => !member.user.bot).size === 0;
 
             if (stillEmpty) {
-              await player.stop();
+              player.queue.clear();
               await player.destroy();
-
-              if (isSendableChannel(textChannel)) {
-                await textChannel.send({
-                  embeds: [createEmbed(client, "Disconnected", "No one rejoined within 1 minute. Stopping music and leaving.", "Red")],
-                });
-              }
+              await textChannel.send(panelMessage({
+                panel: {
+                  eyebrow: "Voice state",
+                  title: "Disconnected",
+                  description: "The channel stayed empty, so playback was stopped and the bot disconnected.",
+                },
+              }));
             }
 
             leaveTimers.delete(oldState.guild.id);
-          }, LEAVE_TIMEOUT);
+          }, timeoutMs);
 
-          leaveTimers.set(oldState.guild.id, timeout);
+          leaveTimers.set(oldState.guild.id, timer);
         }
       }
     }
 
-    if (newBotChannel && newState.channelId === newBotChannel.id) {
-      const nonBotMembers = newBotChannel.members.filter((member) => !member.user.bot);
+    if (currentBotChannel && newState.channelId === currentBotChannel.id) {
+      const listeners = currentBotChannel.members.filter((member) => !member.user.bot);
 
-      if (nonBotMembers.size > 0 && player.paused) {
-        const timeout = leaveTimers.get(newState.guild.id);
-        if (timeout) {
-          clearTimeout(timeout);
+      if (listeners.size > 0 && player.paused) {
+        const timer = leaveTimers.get(newState.guild.id);
+        if (timer) {
+          clearTimeout(timer);
           leaveTimers.delete(newState.guild.id);
         }
 
         await player.pause(false);
-
-        if (isSendableChannel(textChannel)) {
-          await textChannel.send({
-            embeds: [createEmbed(client, "Music Resumed", "Someone joined the voice channel, so playback resumed.", "Green")],
-          });
-        }
+        await textChannel.send(panelMessage({
+          panel: {
+            eyebrow: "Voice state",
+            title: "Playback resumed",
+            description: "A listener rejoined the voice channel, so playback resumed.",
+          },
+        }));
       }
-    }
-
-    if (newState.id === botId && oldState.channelId && oldState.serverMute !== newState.serverMute && isSendableChannel(textChannel)) {
-      await textChannel.send({
-        embeds: [
-          createEmbed(
-            client,
-            newState.serverMute ? "Bot Muted" : "Bot Unmuted",
-            newState.serverMute ? "The bot was server-muted." : "The bot is no longer server-muted.",
-            newState.serverMute ? "Red" : "Green",
-          ),
-        ],
-      });
     }
   });
 }

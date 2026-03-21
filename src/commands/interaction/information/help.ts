@@ -1,31 +1,24 @@
-import { ActionRowBuilder, StringSelectMenuBuilder } from "discord.js";
-import { createEmbed } from "@/utils/discord";
+import { buildCommandMenu, panelEdit, panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "help",
-  description: "Display all Nexa Music commands.",
+  description: "Open the interactive command directory.",
 
   async run(client, interaction) {
     const commands = [...client.slashCommands.values()].sort((left, right) => left.name.localeCompare(right.name));
-
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId("help_select")
-      .setPlaceholder("Select a command")
-      .addOptions(
-        commands.map((item) => ({
-          label: item.name,
-          description: item.description.slice(0, 100),
-          value: item.name,
-        })),
-      );
-
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
-    const embed = createEmbed(client, "Nexa Music Help", `Total commands: **${commands.length}**\nSelect a command below to view details.`);
+    const menu = buildCommandMenu(commands.map((item) => item.name));
 
     const response = await interaction.reply({
-      embeds: [embed],
-      components: [row],
+      ...panelReply({
+        panel: {
+          eyebrow: "Reddish guide",
+          title: "Command directory",
+          description: "Browse the available commands from the selector below.",
+          lines: [`Total commands: ${commands.length}`],
+        },
+        components: [menu],
+      }),
       fetchReply: true,
     });
 
@@ -37,32 +30,45 @@ const command: SlashCommand = {
       }
 
       if (menuInteraction.user.id !== interaction.user.id) {
-        await menuInteraction.reply({ content: "This menu is not for you.", ephemeral: true });
+        await menuInteraction.reply(panelReply({
+          ephemeral: true,
+          panel: {
+            eyebrow: "Restricted",
+            title: "This panel is locked",
+            description: "Only the user who opened this help panel can use it.",
+          },
+        }));
         return;
       }
 
       const selected = commands.find((item) => item.name === menuInteraction.values[0]);
 
       if (!selected) {
-        await menuInteraction.reply({ content: "Command not found.", ephemeral: true });
+        await menuInteraction.reply(panelReply({
+          ephemeral: true,
+          panel: {
+            eyebrow: "Lookup",
+            title: "Command not found",
+            description: "The selected command no longer exists in memory.",
+          },
+        }));
         return;
       }
 
-      const details = createEmbed(
-        client,
-        `Command: /${selected.name}`,
-        [
-          `Description: ${selected.description}`,
-          selected.category ? `Category: ${selected.category}` : undefined,
-          selected.inVoice ? "Requires voice channel: Yes" : undefined,
-          selected.sameVoice ? "Requires same voice channel: Yes" : undefined,
-          selected.player ? "Requires active player: Yes" : undefined,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      );
-
-      await menuInteraction.update({ embeds: [details], components: [row] });
+      await menuInteraction.update(panelEdit({
+        panel: {
+          eyebrow: "Reddish guide",
+          title: `/${selected.name}`,
+          lines: [
+            selected.description,
+            `Category: ${selected.category ?? "uncategorized"}`,
+            `Voice required: ${selected.inVoice ? "yes" : "no"}`,
+            `Same channel required: ${selected.sameVoice ? "yes" : "no"}`,
+            `Active player required: ${selected.player ? "yes" : "no"}`,
+          ],
+        },
+        components: [menu],
+      }));
     });
   },
 };

@@ -1,20 +1,44 @@
-import { EmbedBuilder, type ColorResolvable } from "discord.js";
-import type { ExtendedTrack, NexaClient } from "@/types";
+import {
+  ActionRowBuilder,
+  ContainerBuilder,
+  MessageFlags,
+  SectionBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  StringSelectMenuBuilder,
+  TextDisplayBuilder,
+  ThumbnailBuilder,
+  type InteractionReplyOptions,
+  type InteractionUpdateOptions,
+  type MessageActionRowComponentBuilder,
+  type MessageEditOptions,
+  type MessageReplyOptions,
+  type Snowflake,
+} from "discord.js";
+import type { ExtendedTrack } from "@/types";
 
-export function createEmbed(
-  client: NexaClient,
-  title: string,
-  description: string,
-  color?: ColorResolvable,
-): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(color ?? client.config.color)
-    .setTitle(title)
-    .setDescription(description);
+export interface PanelOptions {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  lines?: string[];
+  imageUrl?: string;
+  subtle?: boolean;
+}
+
+export interface PanelMessageOptions {
+  panel: PanelOptions;
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[];
+  ephemeral?: boolean;
+}
+
+export interface PanelEditOptions {
+  panel: PanelOptions;
+  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[];
 }
 
 export function formatTrackDuration(track: ExtendedTrack): string {
-  return track.info.isStream ? "LIVE" : formatDuration(track.info.length);
+  return track.info.isStream ? "Live stream" : formatDuration(track.info.length);
 }
 
 export function formatDuration(durationMs: number): string {
@@ -36,8 +60,7 @@ export function progressBar(currentMs: number, totalMs: number, size = 18): stri
   }
 
   const ratio = Math.max(0, Math.min(1, currentMs / totalMs));
-  const progress = Math.round(size * ratio);
-  const headIndex = Math.min(size - 1, Math.max(0, progress));
+  const headIndex = Math.min(size - 1, Math.max(0, Math.round(size * ratio)));
 
   return `[${Array.from({ length: size }, (_, index) => {
     if (index < headIndex) {
@@ -56,6 +79,74 @@ export function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
 }
 
+export function reddishText(value: string): string {
+  return `\` ${value.toUpperCase()} \``;
+}
+
+export function buildPanel(options: PanelOptions): ContainerBuilder {
+  const container = new ContainerBuilder();
+  const bodyLines = options.lines?.filter(Boolean) ?? [];
+  const header = [options.eyebrow ? reddishText(options.eyebrow) : undefined, `## ${options.title}`]
+    .filter(Boolean)
+    .join("\n");
+
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
+
+  const mainText = [options.description, ...bodyLines].filter(Boolean).join("\n\n");
+
+  if (options.imageUrl) {
+    const section = new SectionBuilder();
+    section.addTextDisplayComponents(new TextDisplayBuilder().setContent(mainText || " "));
+    section.setThumbnailAccessory(new ThumbnailBuilder().setURL(options.imageUrl));
+    container.addSectionComponents(section);
+  } else if (mainText) {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(mainText));
+  }
+
+  if (!options.subtle) {
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  }
+
+  return container;
+}
+
+export function panelReply(options: PanelMessageOptions): InteractionReplyOptions {
+  return {
+    flags: options.ephemeral ? MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral : MessageFlags.IsComponentsV2,
+    components: [buildPanel(options.panel), ...(options.components ?? [])] as any,
+  };
+}
+
+export function panelEdit(options: PanelEditOptions): InteractionUpdateOptions & MessageEditOptions {
+  return {
+    components: [buildPanel(options.panel), ...(options.components ?? [])] as any,
+  };
+}
+
+export function panelMessage(options: PanelMessageOptions): MessageReplyOptions {
+  return {
+    flags: options.ephemeral ? MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral : MessageFlags.IsComponentsV2,
+    components: [buildPanel(options.panel), ...(options.components ?? [])] as any,
+  };
+}
+
+export function buildCommandMenu(commandNames: string[]): ActionRowBuilder<StringSelectMenuBuilder> {
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId("help_select")
+      .setPlaceholder("Select a command")
+      .addOptions(commandNames.map((name) => ({ label: name, value: name, description: `Open /${name}`.slice(0, 100) }))),
+  );
+}
+
 export function isSendableChannel(channel: unknown): channel is { send: (options: object) => Promise<unknown> } {
   return typeof channel === "object" && channel !== null && "send" in channel && typeof channel.send === "function";
+}
+
+export function requesterName(track: ExtendedTrack): string {
+  return track.info.requester?.user.username ?? "Unknown user";
+}
+
+export function voiceMention(channelId: Snowflake): string {
+  return `<#${channelId}>`;
 }

@@ -2,23 +2,26 @@ import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
-  name: "ping",
-  description: "Show current latency and process uptime.",
+  name: "uptime",
+  description: "Show bot uptime.",
 
   async run(client, interaction) {
     const uptime = process.uptime();
-    const hours = Math.floor(uptime / 3600);
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
     const seconds = Math.floor(uptime % 60);
 
     await interaction.reply(panelReply({
       panel: {
-        eyebrow: "Reddish status",
-        title: "Connection status",
+        eyebrow: "Utility",
+        title: "Process uptime",
         lines: [
-          `Gateway latency: ${client.ws.ping}ms`,
-          `Uptime: ${hours}h ${minutes}m ${seconds}s`,
-          `Node.js: ${process.version}`,
+          `Days: ${days}`,
+          `Hours: ${hours}`,
+          `Minutes: ${minutes}`,
+          `Seconds: ${seconds}`,
+          `Guilds: ${client.guilds.cache.size}`,
         ],
       },
     }));

@@ -1,24 +1,17 @@
 import { ApplicationCommandOptionType, type GuildMember } from "discord.js";
-import { createEmbed } from "@/utils/discord";
 import { getPlayer } from "@/utils/commands";
+import { panelEdit, panelReply } from "@/utils/discord";
 import type { ExtendedPlayer, ExtendedTrack, SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "play",
-  description: "Play a track",
+  description: "Search for a track or playlist and add it to the queue.",
   inVoice: true,
-  options: [
-    {
-      name: "query",
-      description: "The query to search for",
-      type: ApplicationCommandOptionType.String,
-      required: true,
-    },
-  ],
+  options: [{ name: "query", description: "A search term or direct URL", type: ApplicationCommandOptionType.String, required: true }],
 
   async run(client, interaction) {
     if (!interaction.inGuild()) {
-      await interaction.reply({ embeds: [createEmbed(client, "Guild Only", "This command can only be used in a server.", "Red")], ephemeral: true });
+      await interaction.reply(panelReply({ ephemeral: true, panel: { eyebrow: "Voice required", title: "Server only", description: "This command can only be used in a server." } }));
       return;
     }
 
@@ -27,37 +20,22 @@ const command: SlashCommand = {
     const voiceChannel = member.voice.channel;
 
     if (!voiceChannel) {
-      await interaction.reply({
-        embeds: [createEmbed(client, "Voice Channel Required", "You must be connected to a voice channel to use this command.", "Red")],
-        ephemeral: true,
-      });
+      await interaction.reply(panelReply({ ephemeral: true, panel: { eyebrow: "Voice required", title: "Join a voice channel", description: "You must join a voice channel before playing music." } }));
       return;
     }
 
     await interaction.deferReply();
 
     let player = getPlayer(client, interaction.guildId);
-
     if (!player) {
-      player = (await client.riffy.createConnection({
-        guildId: interaction.guildId,
-        voiceChannel: voiceChannel.id,
-        textChannel: interaction.channelId,
-        deaf: true,
-      })) as ExtendedPlayer;
+      player = (await client.riffy.createConnection({ guildId: interaction.guildId, voiceChannel: voiceChannel.id, textChannel: interaction.channelId, deaf: true })) as ExtendedPlayer;
     }
 
-    const resolve = await client.riffy.resolve({
-      query,
-      requester: member,
-    });
-
+    const resolve = await client.riffy.resolve({ query, requester: member });
     const tracks = resolve.tracks as ExtendedTrack[];
 
     if (tracks.length === 0) {
-      await interaction.editReply({
-        embeds: [createEmbed(client, "No Results Found", "There were no results found for your query.", "Red")],
-      });
+      await interaction.editReply(panelEdit({ panel: { eyebrow: "Search", title: "No results found", description: "No tracks matched your request." } }));
       return;
     }
 
@@ -67,37 +45,26 @@ const command: SlashCommand = {
         player.queue.add(track);
       }
 
-      await interaction.editReply({
-        embeds: [createEmbed(client, "Playlist Added", `Added ${tracks.length} tracks from ${resolve.playlistInfo.name ?? "the playlist"} to the queue.`)],
-      });
+      await interaction.editReply(panelEdit({ panel: { eyebrow: "Queue", title: "Playlist added", lines: [`Playlist: ${resolve.playlistInfo.name ?? "Unnamed playlist"}`, `Tracks queued: ${tracks.length}`, `Queue size: ${player.queue.size}`] } }));
     } else {
       const track = tracks.shift();
-
       if (!track) {
-        await interaction.editReply({
-          embeds: [createEmbed(client, "No Results Found", "There were no results found for your query.", "Red")],
-        });
+        await interaction.editReply(panelEdit({ panel: { eyebrow: "Search", title: "No results found", description: "No tracks matched your request." } }));
         return;
       }
 
       track.info.requester = member;
       player.queue.add(track);
 
-      const embed = createEmbed(
-        client,
-        "Track Enqueued",
-        `**[${track.info.title}](${track.info.uri})**\nby **${track.info.author}**\n\nPosition in queue: #${player.queue.size}`,
-      );
-
-      if (track.info.thumbnail) {
-        embed.setThumbnail(track.info.thumbnail);
-      }
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(panelEdit({ panel: { eyebrow: "Queue", title: "Track added", imageUrl: track.info.thumbnail, lines: [`[${track.info.title}](${track.info.uri})`, `Artist: ${track.info.author}`, `Position: ${player.queue.size}`] } }));
     }
 
-    if (!player.playing && !player.paused) {
-      await player.play();
+    if (player.queue.length > 0 && !player.playing && !player.paused) {
+      try {
+        await player.play();
+      } catch (error) {
+        await interaction.followUp(panelReply({ ephemeral: true, panel: { eyebrow: "Playback", title: "Player start failed", description: error instanceof Error ? error.message : String(error) } }));
+      }
     }
   },
 };

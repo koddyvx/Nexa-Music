@@ -1,9 +1,8 @@
-import { PermissionFlagsBits, type GuildMember, type Message } from "discord.js";
-import type { ExtendedPlayer, NexaClient, PrefixCommand, SlashCommand } from "@/types";
+import type { Message } from "discord.js";
+import type { ExtendedPlayer, NexaClient, PrefixCommand } from "@/types";
 
 export function getPrefixCommand(client: NexaClient, input: string): PrefixCommand | undefined {
   const direct = client.commands.get(input);
-
   if (direct) {
     return direct;
   }
@@ -18,23 +17,6 @@ export function getPlayer(client: NexaClient, guildId: string | null): ExtendedP
   }
 
   return client.riffy.players.get(guildId) as ExtendedPlayer | undefined;
-}
-
-export function hasVoiceFlags(command: SlashCommand): { inVoice: boolean; sameVoice: boolean } {
-  return {
-    inVoice: command.inVoice ?? false,
-    sameVoice: command.sameVoice ?? false,
-  };
-}
-
-export function hasRequiredPermissions(member: GuildMember, required: bigint[]): boolean {
-  return required.length === 0 || member.permissions.has(required);
-}
-
-export const DEFAULT_USER_PERMISSIONS = [PermissionFlagsBits.ViewChannel];
-
-export function commandDisplay(name: string): string {
-  return `/${name}`;
 }
 
 export function ensureMessageContent(message: Message, prefix: string): string[] | null {

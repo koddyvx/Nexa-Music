@@ -3,34 +3,37 @@ import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
-  name: "pause",
-  description: "Pause the current track.",
+  name: "previous",
+  description: "Replay the previous track if one exists.",
   inVoice: true,
   sameVoice: true,
   player: true,
-  current: true,
 
   async run(client, interaction) {
     const player = getPlayer(client, interaction.guildId)!;
+    const previous = player.previous;
 
-    if (player.paused) {
+    if (!previous) {
       await interaction.reply(panelReply({
         ephemeral: true,
         panel: {
           eyebrow: "Playback",
-          title: "Already paused",
-          description: "The current track is already paused.",
+          title: "No previous track",
+          description: "There is no previous track stored for this player.",
         },
       }));
       return;
     }
 
-    await player.pause(true);
+    player.queue.unshift(player.current ?? previous);
+    player.queue.unshift(previous);
+    await player.stop();
+
     await interaction.reply(panelReply({
       panel: {
         eyebrow: "Playback",
-        title: "Playback paused",
-        description: "The current track has been paused.",
+        title: "Replaying previous track",
+        description: `Queued ${previous.info.title} to play again.`,
       },
     }));
   },

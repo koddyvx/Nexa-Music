@@ -1,26 +1,24 @@
 import { getPlayer } from "@/utils/commands";
-import { panelReply, voiceMention } from "@/utils/discord";
+import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
-  name: "leave",
-  description: "Disconnect the bot from the current voice channel.",
+  name: "clear",
+  description: "Clear every track waiting in the queue.",
   inVoice: true,
   sameVoice: true,
   player: true,
 
   async run(client, interaction) {
     const player = getPlayer(client, interaction.guildId)!;
-    const channelId = player.voiceChannel;
-
+    const removed = player.queue.length;
     player.queue.clear();
-    await player.destroy();
 
     await interaction.reply(panelReply({
       panel: {
-        eyebrow: "Voice state",
-        title: "Disconnected",
-        description: `Left ${voiceMention(channelId)} and cleared the queue.`,
+        eyebrow: "Queue",
+        title: "Queue cleared",
+        description: removed === 0 ? "The queue was already empty." : `Removed ${removed} queued track${removed === 1 ? "" : "s"}.`,
       },
     }));
   },

@@ -4,33 +4,35 @@ import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
-  name: "volume",
-  description: "Set the playback volume.",
+  name: "loop",
+  description: "Change the loop mode for the player.",
   inVoice: true,
   sameVoice: true,
   player: true,
-  current: true,
   options: [
     {
-      name: "volume",
-      description: "A value between 0 and 100",
-      type: ApplicationCommandOptionType.Number,
+      name: "mode",
+      description: "Loop mode to apply",
+      type: ApplicationCommandOptionType.String,
       required: true,
-      min_value: 0,
-      max_value: 100,
+      choices: [
+        { name: "Off", value: "none" },
+        { name: "Track", value: "track" },
+        { name: "Queue", value: "queue" },
+      ],
     },
   ],
 
   async run(client, interaction) {
     const player = getPlayer(client, interaction.guildId)!;
-    const volume = interaction.options.getNumber("volume", true);
+    const mode = interaction.options.getString("mode", true) as "none" | "track" | "queue";
 
-    await player.setVolume(volume);
+    await player.setLoop(mode);
     await interaction.reply(panelReply({
       panel: {
         eyebrow: "Playback",
-        title: "Volume updated",
-        description: `Volume is now set to ${volume} percent.`,
+        title: "Loop mode updated",
+        description: `Loop mode is now set to ${mode}.`,
       },
     }));
   },

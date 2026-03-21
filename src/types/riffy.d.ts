@@ -47,10 +47,13 @@ declare module "riffy" {
     thumbnail?: string;
     isStream?: boolean;
     requester?: GuildMember;
+    identifier?: string;
+    sourceName?: string;
   }
 
   export interface RiffyTrack {
     info: RiffyTrackInfo;
+    isAutoplay?: boolean;
   }
 
   export interface RiffyPlaylistInfo {
@@ -59,19 +62,26 @@ declare module "riffy" {
 
   export interface RiffyQueue extends Array<RiffyTrack> {
     add(track: RiffyTrack): void;
+    remove(index: number): RiffyTrack;
+    clear(): void;
+    shuffle(): void;
     size: number;
   }
+
+  export type LoopOption = "none" | "track" | "queue";
 
   export interface RiffyPlayer {
     guildId: Snowflake;
     voiceChannel: Snowflake;
     textChannel: Snowflake;
     current?: RiffyTrack;
+    previous?: RiffyTrack;
     queue: RiffyQueue;
     paused: boolean;
     playing: boolean;
     position: number;
     volume: number;
+    loop: LoopOption;
     isAutoplay?: boolean;
     message?: Message;
     autoplay?(player: RiffyPlayer): Promise<void> | void;
@@ -79,7 +89,9 @@ declare module "riffy" {
     pause(paused: boolean): Promise<void> | void;
     stop(): Promise<void> | void;
     destroy(): Promise<void> | void;
+    seek(position: number): void;
     setVolume(volume: number): Promise<void> | void;
+    setLoop(mode: LoopOption): Promise<void> | void;
   }
 
   export interface RiffyResolveResponse {
@@ -93,11 +105,13 @@ declare module "riffy" {
     voiceChannel: Snowflake;
     textChannel: Snowflake;
     deaf?: boolean;
+    loop?: LoopOption;
   }
 
   export interface RiffyResolveOptions {
     query: string;
     requester?: GuildMember;
+    source?: string;
   }
 
   export interface RiffyOptions {

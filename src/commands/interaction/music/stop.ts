@@ -1,31 +1,28 @@
-import { createEmbed } from "@/utils/discord";
 import { getPlayer } from "@/utils/commands";
+import { panelReply, voiceMention } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "stop",
-  description: "Stop the music and disconnect the bot",
+  description: "Stop playback and disconnect the bot.",
   inVoice: true,
   sameVoice: true,
   player: true,
 
   async run(client, interaction) {
-    const player = getPlayer(client, interaction.guildId);
+    const player = getPlayer(client, interaction.guildId)!;
+    const channelId = player.voiceChannel;
 
-    if (!player) {
-      await interaction.reply({
-        embeds: [createEmbed(client, "No Active Player", "There is no active music session in this server.", "Red")],
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const voiceChannelId = player.voiceChannel;
+    player.queue.clear();
     await player.destroy();
 
-    await interaction.reply({
-      embeds: [createEmbed(client, "Playback Stopped", `Music playback has been stopped and disconnected from <#${voiceChannelId}>.`)],
-    });
+    await interaction.reply(panelReply({
+      panel: {
+        eyebrow: "Playback",
+        title: "Playback stopped",
+        description: `Playback stopped and the bot left ${voiceMention(channelId)}.`,
+      },
+    }));
   },
 };
 

@@ -1,4 +1,4 @@
-import { createEmbed, isSendableChannel } from "@/utils/discord";
+import { panelMessage } from "@/utils/discord";
 import type { ExtendedPlayer, NexaClient } from "@/types";
 
 export default function registerQueueEnd(client: NexaClient): void {
@@ -10,7 +10,7 @@ export default function registerQueueEnd(client: NexaClient): void {
     }
 
     const channel = client.channels.cache.get(player.textChannel);
-    if (!isSendableChannel(channel)) {
+    if (!channel || !("send" in channel) || typeof channel.send !== "function") {
       return;
     }
 
@@ -20,8 +20,12 @@ export default function registerQueueEnd(client: NexaClient): void {
     }
 
     await player.destroy();
-    await channel.send({
-      embeds: [createEmbed(client, "Queue Ended", "The queue ended and the player has disconnected.")],
-    }).catch(() => undefined);
+    await channel.send(panelMessage({
+      panel: {
+        eyebrow: "Playback",
+        title: "Queue ended",
+        description: "The queue finished and the player disconnected.",
+      },
+    })).catch(() => undefined);
   });
 }
