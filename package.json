@@ -1,13 +1,13 @@
 {
-  "name": "nexa-music-ts",
+  "name": "nexa-music",
+  "description": "discord music bot lavalink v4 riffy.",
   "version": "2.0.0",
-  "description": "High-performance Discord music bot built with TypeScript, Lavalink v4, and Riffy",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "watch": "tsc --watch"
+    "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
     "discord.js": "^14.21.0",
@@ -17,15 +17,16 @@
     "riffy": "^1.0.12"
   },
   "devDependencies": {
-    "@types/node": "^20.19.37",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "@types/node": "^24.5.2",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.9.2"
   },
   "keywords": [
-    "discord",
-    "music-bot",
-    "lavalink",
     "riffy",
+    "music-bot",
+    "discord-music-bot",
+    "riffy-music-bot",
+    "discord-pro-handler",
     "typescript"
   ],
   "author": "Infinity",
