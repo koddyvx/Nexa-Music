@@ -11,6 +11,7 @@
 
 import { getPlayer } from "@/utils/commands";
 import { panelMessage } from "@/utils/discord";
+import { is247Enabled } from "@/storage/guildSettings";
 import type { NexaClient } from "@/types";
 
 const leaveTimers = new Map<string, NodeJS.Timeout>();
@@ -29,8 +30,53 @@ export default function registerVoiceStateUpdate(client: NexaClient): void {
       return;
     }
 
+    const stayConnected = is247Enabled(oldState.guild.id);
+    const reconnectChannelId = oldState.channelId;
+
+    if (oldState.id === client.user.id && reconnectChannelId && !newState.channelId) {
+      if (stayConnected) {
+        setTimeout(async () => {
+          const currentPlayer = getPlayer(client, oldState.guild.id);
+          if (currentPlayer) {
+            return;
+          }
+
+          try {
+            await client.riffy.createConnection({
+              guildId: oldState.guild.id,
+              voiceChannel: reconnectChannelId,
+              textChannel: player.textChannel,
+              deaf: true,
+            });
+
+            await textChannel.send(panelMessage({
+              panel: {
+                eyebrow: "Nexa Music",
+                title: "24/7 Reconnected",
+                description: "I was disconnected and automatically reconnected to keep 24/7 mode active.",
+              },
+            }));
+          } catch {
+            await textChannel.send(panelMessage({
+              panel: {
+                eyebrow: "Nexa Music",
+                title: "24/7 Reconnect Failed",
+                description: "I could not auto-reconnect. Run /247 on again after checking permissions and voice access.",
+              },
+            })).catch(() => undefined);
+          }
+        }, 2_000);
+      }
+
+      return;
+    }
+
     const previousBotChannel = oldState.guild.members.me?.voice.channel;
     const currentBotChannel = newState.guild.members.me?.voice.channel;
+
+    if (stayConnected) {
+      return;
+    }
 
     if (previousBotChannel && oldState.channelId === previousBotChannel.id) {
       const listeners = previousBotChannel.members.filter((member) => !member.user.bot);

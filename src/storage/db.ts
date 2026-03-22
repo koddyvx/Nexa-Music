@@ -41,7 +41,12 @@ sqlite.exec(`
     author TEXT NOT NULL,
     order_index INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS guild_settings (
+    guild_id TEXT PRIMARY KEY,
+    stay_247 INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+  );
 `);
 
 export const db = drizzle(sqlite);
-

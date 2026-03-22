@@ -34,3 +34,8 @@ export const playlistTracks = sqliteTable("playlist_tracks", {
   orderIndex: integer("order_index").notNull(),
 });
 
+export const guildSettings = sqliteTable("guild_settings", {
+  guildId: text("guild_id").primaryKey(),
+  stay247: integer("stay_247").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+});

@@ -138,6 +138,7 @@ src/
 - `/ping`
 
 ### Music
+- `/247`
 - `/autoplay`
 - `/clear`
 - `/join`
@@ -232,6 +233,7 @@ npm run start:bot
 - DB init: `src/storage/db.ts`
 - Schema: `src/storage/schema.ts`
 - Playlist operations: `src/storage/playlists.ts`
+- Drizzle config: `drizzle.config.ts`
 
 ### Tables
 - `playlists`
@@ -249,6 +251,13 @@ npm run start:bot
 ### Storage Location
 - `storage/nexa.sqlite`
 
+### Drizzle Commands
+```bash
+npm run db:generate
+npm run db:push
+npm run db:studio
+```
+
 ## Components V2 UI Guide
 - All panel replies/messages are built with shared helpers in `src/utils/discord.ts`.
 - Message flags include Components V2 support.
@@ -263,6 +272,22 @@ The bot should have at least:
 - `Speak`
 
 Users should be in voice for commands that require `inVoice`/`sameVoice`.
+
+## 24/7 System Guide
+- Use `/247 mode:on` to enable 24/7 mode for the server.
+- Use `/247 mode:off` to disable it.
+- Use `/247 mode:status` to check current state.
+- When enabled:
+  - queue end will not disconnect the bot
+  - empty-channel auto-leave is skipped
+  - if voice disconnect happens, Nexa attempts auto-reconnect
+- Setting is persisted per guild in SQLite table `guild_settings`.
+
+## Node Auto-Reconnect Logic
+- On `nodeDisconnect`, Nexa schedules auto-reconnect attempts.
+- Retry interval: 5 seconds.
+- Max attempts: 12.
+- Success/failure is logged to console.
 
 ## Troubleshooting
 
