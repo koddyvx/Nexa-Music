@@ -2,6 +2,12 @@
 
 Nexa Music v2 is a TypeScript Discord music bot built on Discord.js v14, Lavalink v4, and Riffy.
 
+Current stable release: `v2.0.0`
+
+Release docs:
+- [CHANGELOG.md](./CHANGELOG.md)
+- [MIGRATION.md](./MIGRATION.md)
+
 ## Authors
 - KoDdy
 - Razi
@@ -60,6 +66,15 @@ Nexa Music v2 is a TypeScript Discord music bot built on Discord.js v14, Lavalin
 - Typed playlist data models and storage API.
 - Safer error handling with TypeScript narrowing.
 - Stricter command interaction checks (`inGuild`, player/current checks).
+
+## Release 2.0.0 Summary
+- Migrated the codebase to TypeScript with stricter runtime guards.
+- Standardized Discord reply rendering around Components V2 panel helpers.
+- Added SQLite + Drizzle persistence for playlists and guild 24/7 settings.
+- Introduced hybrid command loading so slash and prefix commands can share one file.
+- Improved playback stability around pause/resume sync, autoplay fallback, node diagnostics, and track-start message cleanup.
+
+See [MIGRATION.md](./MIGRATION.md) for upgrade notes from older Nexa builds.
 
 ## Hybrid Command System
 - Commands are now loaded recursively from `src/commands`, not tied to `interaction` folder.

@@ -9,8 +9,8 @@
  * https://discord.gg/fbu64BmPFD
  */
 
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { panelEdit, panelReply } from "@/utils/discord";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
+import { buildPanel, panelReply } from "@/utils/discord";
 import type { NexaClient, SlashCommand } from "@/types";
 import type { RiffyNode } from "riffy";
 
@@ -79,6 +79,17 @@ function disabledNavigation(): ActionRowBuilder<ButtonBuilder> {
   );
 }
 
+function renderNodeComponents(nodes: RuntimeNode[], page: number, locked = false) {
+  const panel = buildPanel({
+    eyebrow: "Nexa Music",
+    title: `Node diagnostics ${page + 1}/${nodes.length}`,
+    lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
+  });
+
+  panel.addActionRowComponents(locked ? disabledNavigation() : navigation(page, nodes.length));
+  return [panel] as any;
+}
+
 const command: SlashCommand = {
   name: "node",
   description: "Inspect Lavalink node health and load.",
@@ -99,23 +110,21 @@ const command: SlashCommand = {
     }
 
     let page = 0;
-    const render = (locked = false) => panelEdit({
-      panel: {
-        eyebrow: "Nexa Music",
-        title: `Node diagnostics ${page + 1}/${nodes.length}`,
-        lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
-      },
-      components: [locked ? disabledNavigation() : navigation(page, nodes.length)],
+    const render = (locked = false) => ({
+      flags: MessageFlags.IsComponentsV2 as const,
+      components: renderNodeComponents(nodes, page, locked),
     });
 
-    await interaction.reply(panelReply({
-      panel: {
-        eyebrow: "Nexa Music",
-        title: `Node diagnostics ${page + 1}/${nodes.length}`,
-        lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
-      },
-      components: [navigation(page, nodes.length)],
-    }));
+    await interaction.reply({
+      ...panelReply({
+        panel: {
+          eyebrow: "Nexa Music",
+          title: `Node diagnostics ${page + 1}/${nodes.length}`,
+          lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
+        },
+      }),
+      components: renderNodeComponents(nodes, page, false),
+    });
     const response = await interaction.fetchReply();
 
     const collector = response.createMessageComponentCollector({ time: 120_000 });
@@ -148,14 +157,16 @@ const command: SlashCommand = {
       if (buttonInteraction.customId === "node_refresh") {
         nodes = getNodes(client);
         if (nodes.length === 0) {
-          await buttonInteraction.update(panelEdit({
-            panel: {
-              eyebrow: "Nexa Music",
-              title: "No nodes available",
-              description: "There are no Lavalink nodes connected right now.",
-            },
-            components: [disabledNavigation()],
-          }));
+          const panel = buildPanel({
+            eyebrow: "Nexa Music",
+            title: "No nodes available",
+            description: "There are no Lavalink nodes connected right now.",
+          });
+          panel.addActionRowComponents(disabledNavigation());
+          await buttonInteraction.update({
+            flags: MessageFlags.IsComponentsV2 as const,
+            components: [panel] as any,
+          });
           collector.stop("no_nodes");
           return;
         }

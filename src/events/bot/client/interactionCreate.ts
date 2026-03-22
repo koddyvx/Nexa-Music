@@ -10,7 +10,7 @@
  */
 
 import { PermissionsBitField, type GuildTextBasedChannel, type GuildMember } from "discord.js";
-import { getActivePlayer, hasCurrentTrack } from "@/utils/commands";
+import { getActivePlayer, hasCurrentTrack, syncPauseState } from "@/utils/commands";
 import { buildTopggVoteButton, panelReply } from "@/utils/discord";
 import { hasTopggVote } from "@/utils/topgg";
 import type { NexaClient } from "@/types";
@@ -66,7 +66,9 @@ export default function registerInteractionCreate(client: NexaClient): void {
           return;
         }
 
-        await player.pause(!player.paused);
+        const nextPaused = !player.paused;
+        await player.pause(nextPaused);
+        syncPauseState(player, nextPaused);
         await interaction.reply(panelReply({
           ephemeral: true,
           panel: {

@@ -32,6 +32,11 @@ export default function registerTrackStart(client: NexaClient): void {
       return;
     }
 
+    if (player.message) {
+      await player.message.delete().catch(() => undefined);
+      player.message = undefined;
+    }
+
     const panel = buildPanel({
       eyebrow: "Nexa Music",
       title: "Now Playing",

@@ -57,6 +57,11 @@ export function hasCurrentTrack(player: ExtendedPlayer | undefined): player is E
   return Boolean(player?.current && (player.playing || player.paused));
 }
 
+export function syncPauseState(player: ExtendedPlayer, paused: boolean): void {
+  player.paused = paused;
+  player.playing = paused ? false : Boolean(player.current);
+}
+
 export async function ensurePlayerConnection(
   client: NexaClient,
   guildId: string,

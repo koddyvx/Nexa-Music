@@ -9,7 +9,7 @@
  * https://discord.gg/fbu64BmPFD
  */
 
-import { getPlayer } from "@/utils/commands";
+import { getPlayer, syncPauseState } from "@/utils/commands";
 import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
@@ -37,6 +37,7 @@ const command: SlashCommand = {
     }
 
     await player.pause(false);
+    syncPauseState(player, false);
     await interaction.reply(panelReply({
       panel: {
         eyebrow: "Playback",

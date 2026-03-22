@@ -9,7 +9,7 @@
  * https://discord.gg/fbu64BmPFD
  */
 
-import { getPlayer } from "@/utils/commands";
+import { getPlayer, hasCurrentTrack } from "@/utils/commands";
 import { panelReply } from "@/utils/discord";
 import type { SlashCommand } from "@/types";
 
@@ -39,8 +39,10 @@ const command: SlashCommand = {
 
     if (
       player.isAutoplay &&
+      !hasCurrentTrack(player) &&
       !player.playing &&
       !player.paused &&
+      !player.current &&
       player.queue.length === 0 &&
       player.previous &&
       typeof player.autoplay === "function"
