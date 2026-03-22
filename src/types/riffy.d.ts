@@ -90,6 +90,7 @@ declare module "riffy" {
     queue: RiffyQueue;
     paused: boolean;
     playing: boolean;
+    connected: boolean;
     position: number;
     volume: number;
     loop: LoopOption;

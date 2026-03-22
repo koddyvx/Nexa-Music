@@ -11,7 +11,7 @@
 
 import { ApplicationCommandType, type GuildMember } from "discord.js";
 import { panelReply, voiceMention } from "@/utils/discord";
-import { getPlayer } from "@/utils/commands";
+import { ensurePlayerConnection, getPlayer } from "@/utils/commands";
 import type { SlashCommand } from "@/types";
 
 const command: SlashCommand = {
@@ -48,8 +48,9 @@ const command: SlashCommand = {
     }
 
     const existingPlayer = getPlayer(client, interaction.guildId);
+    const botChannelId = interaction.guild!.members.me?.voice.channelId ?? null;
 
-    if (existingPlayer) {
+    if (existingPlayer && existingPlayer.connected && botChannelId === voiceChannel.id) {
       await interaction.reply(panelReply({
         ephemeral: true,
         panel: {
@@ -61,12 +62,7 @@ const command: SlashCommand = {
       return;
     }
 
-    await client.riffy.createConnection({
-      guildId: interaction.guildId,
-      voiceChannel: voiceChannel.id,
-      textChannel: interaction.channelId,
-      deaf: true,
-    });
+    await ensurePlayerConnection(client, interaction.guildId, voiceChannel.id, interaction.channelId);
 
     await interaction.reply(panelReply({
       panel: {

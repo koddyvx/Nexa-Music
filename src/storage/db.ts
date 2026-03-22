@@ -107,8 +107,21 @@ sqlite.exec(`
   CREATE TABLE IF NOT EXISTS guild_settings (
     guild_id TEXT PRIMARY KEY,
     stay_247 INTEGER NOT NULL DEFAULT 0,
+    voice_channel_id TEXT,
+    text_channel_id TEXT,
     updated_at TEXT NOT NULL
   );
 `);
+
+const guildSettingsColumns = sqlite.all<{ name: string }>("PRAGMA table_info(guild_settings)");
+const guildSettingsColumnNames = new Set(guildSettingsColumns.map((column) => column.name));
+
+if (!guildSettingsColumnNames.has("voice_channel_id")) {
+  sqlite.exec("ALTER TABLE guild_settings ADD COLUMN voice_channel_id TEXT");
+}
+
+if (!guildSettingsColumnNames.has("text_channel_id")) {
+  sqlite.exec("ALTER TABLE guild_settings ADD COLUMN text_channel_id TEXT");
+}
 
 export const db = sqlite;

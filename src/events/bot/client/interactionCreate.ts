@@ -10,7 +10,7 @@
  */
 
 import { PermissionsBitField, type GuildTextBasedChannel, type GuildMember } from "discord.js";
-import { getPlayer } from "@/utils/commands";
+import { getActivePlayer, hasCurrentTrack } from "@/utils/commands";
 import { buildTopggVoteButton, panelReply } from "@/utils/discord";
 import { hasTopggVote } from "@/utils/topgg";
 import type { NexaClient } from "@/types";
@@ -24,7 +24,7 @@ export default function registerInteractionCreate(client: NexaClient): void {
     if (interaction.isButton() && interaction.customId.startsWith("player_")) {
       const member = interaction.member as GuildMember;
       const guild = interaction.guild!;
-      const player = getPlayer(client, interaction.guildId);
+      const player = getActivePlayer(client, interaction.guildId);
 
       if (!player) {
         await interaction.reply(panelReply({
@@ -54,6 +54,18 @@ export default function registerInteractionCreate(client: NexaClient): void {
       }
 
       if (interaction.customId === "player_toggle_pause") {
+        if (!hasCurrentTrack(player)) {
+          await interaction.reply(panelReply({
+            ephemeral: true,
+            panel: {
+              eyebrow: "Playback",
+              title: "Nothing is playing",
+              description: "Start playback before using player controls.",
+            },
+          }));
+          return;
+        }
+
         await player.pause(!player.paused);
         await interaction.reply(panelReply({
           ephemeral: true,
@@ -67,6 +79,18 @@ export default function registerInteractionCreate(client: NexaClient): void {
       }
 
       if (interaction.customId === "player_skip") {
+        if (!hasCurrentTrack(player)) {
+          await interaction.reply(panelReply({
+            ephemeral: true,
+            panel: {
+              eyebrow: "Playback",
+              title: "Nothing is playing",
+              description: "Start playback before using player controls.",
+            },
+          }));
+          return;
+        }
+
         const skippedTitle = player.current?.info.title ?? "current track";
         await player.stop();
         await interaction.reply(panelReply({
@@ -125,7 +149,7 @@ export default function registerInteractionCreate(client: NexaClient): void {
     try {
       const guild = interaction.guild!;
       const member = interaction.member as GuildMember;
-      const player = getPlayer(client, interaction.guildId);
+      const player = getActivePlayer(client, interaction.guildId);
       const memberChannelId = member.voice.channelId;
       const botChannelId = guild.members.me?.voice.channelId ?? null;
       const permissionChannel = interaction.channel as GuildTextBasedChannel | null;
@@ -212,7 +236,7 @@ export default function registerInteractionCreate(client: NexaClient): void {
         return;
       }
 
-      if (command.current && !player?.current) {
+      if (command.current && !hasCurrentTrack(player)) {
         await interaction.reply(panelReply({ ephemeral: true, panel: { eyebrow: "Playback", title: "Nothing is playing", description: "Start playback before using this command." } }));
         return;
       }

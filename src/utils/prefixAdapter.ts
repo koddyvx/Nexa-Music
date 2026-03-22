@@ -116,6 +116,12 @@ function createMessageInteraction(command: SlashCommand, message: Message, args:
       this.replied = true;
       return replyMessage;
     },
+    async fetchReply() {
+      if (!replyMessage) {
+        throw new Error("No reply has been created for this message command yet.");
+      }
+      return replyMessage;
+    },
     async followUp(options: Record<string, unknown>) {
       return channel.send(sanitizeMessageOptions(options));
     },

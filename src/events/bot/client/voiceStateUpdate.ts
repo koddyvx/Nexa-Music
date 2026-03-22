@@ -11,7 +11,7 @@
 
 import { getPlayer } from "@/utils/commands";
 import { panelMessage } from "@/utils/discord";
-import { is247Enabled } from "@/storage/guildSettings";
+import { is247Enabled, set247Enabled } from "@/storage/guildSettings";
 import type { NexaClient } from "@/types";
 
 const leaveTimers = new Map<string, NodeJS.Timeout>();
@@ -52,6 +52,7 @@ export default function registerVoiceStateUpdate(client: NexaClient): void {
                 textChannel: player.textChannel,
                 deaf: true,
               });
+              set247Enabled(oldState.guild.id, true, reconnectChannelId, player.textChannel);
             } else {
               await client.riffy.createConnection({
                 guildId: oldState.guild.id,
@@ -59,6 +60,7 @@ export default function registerVoiceStateUpdate(client: NexaClient): void {
                 textChannel: player.textChannel,
                 deaf: true,
               });
+              set247Enabled(oldState.guild.id, true, reconnectChannelId, player.textChannel);
             }
 
             await textChannel.send(panelMessage({

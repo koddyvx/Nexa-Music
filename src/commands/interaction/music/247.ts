@@ -87,7 +87,7 @@ const command: SlashCommand = {
       return;
     }
 
-    set247Enabled(guildId, true);
+    set247Enabled(guildId, true, voiceChannel.id, interaction.channelId);
 
     let player = getPlayer(client, guildId);
     if (!player) {
@@ -97,6 +97,8 @@ const command: SlashCommand = {
         textChannel: interaction.channelId,
         deaf: true,
       })) as ExtendedPlayer;
+    } else {
+      set247Enabled(guildId, true, player.voiceChannel, player.textChannel);
     }
 
     await interaction.reply(panelReply({
@@ -113,4 +115,3 @@ const command: SlashCommand = {
 };
 
 export default command;
-

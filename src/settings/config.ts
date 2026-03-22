@@ -21,8 +21,8 @@ const config: BotConfig = {
   nodes: [
     {
       name: "nexa-1",
-      host: "lava-v4.millohost.my.id",
-      password: "https://discord.gg/mjS5J2K3ep",
+      host: "lava-v4.ajieblogs.eu.org",
+      password: "https://dsc.gg/ajidevserver",
       port: 443,
       secure: true,
     },

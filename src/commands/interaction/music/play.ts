@@ -10,9 +10,9 @@
  */
 
 import { ApplicationCommandOptionType, type GuildMember } from "discord.js";
-import { getPlayer } from "@/utils/commands";
+import { ensurePlayerConnection } from "@/utils/commands";
 import { panelEdit, panelReply } from "@/utils/discord";
-import type { ExtendedPlayer, ExtendedTrack, SlashCommand } from "@/types";
+import type { ExtendedTrack, SlashCommand } from "@/types";
 
 const command: SlashCommand = {
   name: "play",
@@ -37,10 +37,7 @@ const command: SlashCommand = {
 
     await interaction.deferReply();
 
-    let player = getPlayer(client, interaction.guildId);
-    if (!player) {
-      player = (await client.riffy.createConnection({ guildId: interaction.guildId, voiceChannel: voiceChannel.id, textChannel: interaction.channelId, deaf: true })) as ExtendedPlayer;
-    }
+    const player = await ensurePlayerConnection(client, interaction.guildId, voiceChannel.id, interaction.channelId);
 
     const resolve = await client.riffy.resolve({ query, requester: member });
     const tracks = resolve.tracks as ExtendedTrack[];
