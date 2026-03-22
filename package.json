@@ -22,6 +22,7 @@
     "riffy": "^1.0.12"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.5.2",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

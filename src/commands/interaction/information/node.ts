@@ -41,7 +41,7 @@ function navigation(page: number, pages: number): ActionRowBuilder<ButtonBuilder
   );
 }
 
-function disabledNavigation(page: number, pages: number): ActionRowBuilder<ButtonBuilder> {
+function disabledNavigation(): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId("node_prev").setLabel("Previous").setStyle(ButtonStyle.Secondary).setDisabled(true),
     new ButtonBuilder().setCustomId("node_next").setLabel("Next").setStyle(ButtonStyle.Secondary).setDisabled(true),
@@ -75,7 +75,7 @@ const command: SlashCommand = {
         title: `Node diagnostics ${page + 1}/${nodes.length}`,
         lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
       },
-      components: [locked ? disabledNavigation(page, nodes.length) : navigation(page, nodes.length)],
+      components: [locked ? disabledNavigation() : navigation(page, nodes.length)],
     });
 
     const response = await interaction.reply({
@@ -126,7 +126,7 @@ const command: SlashCommand = {
               title: "No nodes available",
               description: "There are no Lavalink nodes connected right now.",
             },
-            components: [disabledNavigation(0, 1)],
+            components: [disabledNavigation()],
           }));
           collector.stop("no_nodes");
           return;

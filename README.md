@@ -1,220 +1,295 @@
-## Nexa Music
+# Nexa Music v2
 
-Nexa Music is a high-performance, modern Discord music bot built with scalability, stability, and clean design in mind.  
-It is powered by Lavalink v4 and Riffy, delivering reliable audio streaming with an optimized Components V2 interface.
+Nexa Music v2 is a TypeScript Discord music bot built on Discord.js v14, Lavalink v4, and Riffy.
 
----
+## Authors
+- KoDdy
+- Razi
 
-## Information
+## Organization
+- Infinity
 
-**Developed By:** KoDdy & Razi  
-**Project Organization:** Infinity  
-**Official Support Server:** https://discord.gg/fbu64BmPFD  
+## Support
+- Discord: https://discord.gg/fbu64BmPFD
 
-Nexa Music is an open-source project. You are free to use, modify, and distribute it under its respective license.
+## License
+- MIT
 
----
+## What Is New In v2
 
-## Core Architecture
+### Addons
+- Full Components V2 panel UI for replies/messages.
+- Interactive help center with category select menu and command select menu.
+- Track control buttons on `trackStart`:
+  - Pause/Resume
+  - Skip
+  - Stop
+  - Queue preview
+- Extended playback event coverage:
+  - `trackStart`
+  - `trackEnd`
+  - `trackError`
+  - `trackStuck`
+  - `queueEnd`
+- SQLite persistent playlist storage.
+- Drizzle ORM data layer for playlists/tracks.
+- Prefix adapter system mapped from slash commands.
 
-Nexa Music is built using:
+### Fixes
+- Deprecated ready event warning fixed:
+  - moved startup flow to `Events.ClientReady`
+  - removed old `client.on("ready")` usage
+- Updated UI branding from old reddish text to `Nexa Music` style.
+- Help panel now has timeout handling (1 minute) and disables controls on timeout.
+- Node diagnostics command stability improvements:
+  - safe refresh when no nodes are available
+  - button state lock on collector end
+- Added/strengthened permission checks for music commands:
+  - `ViewChannel`
+  - `SendMessages`
+  - `EmbedLinks`
+  - `Connect`
+  - `Speak`
+- Fixed queue/playlist text separators and encoding issues.
+- Standardized Components V2 message flags via shared panel utility.
 
-- Riffy (Lavalink wrapper)
-- Lavalink v4 (Audio processing node)
-- Discord.js (Slash command interactions)
-- Components V2 (Modern structured UI system)
-- SQLite + Drizzle ORM (persistent playlist storage)
-- Environment Variable Configuration (.env)
+### JS To TS Conversion Improvements
+- Typed client class (`NexaClient`) with command and riffy members.
+- Typed slash/prefix command contracts.
+- Typed event loader interfaces.
+- Typed playlist data models and storage API.
+- Safer error handling with TypeScript narrowing.
+- Stricter command interaction checks (`inGuild`, player/current checks).
 
-The bot follows a modular command structure to ensure maintainability and scalability.
-
----
-
-## Main Features
-
-- Uses Riffy for stable and efficient Lavalink communication
-- Fully compatible with Lavalink v4
-- Slash command based interaction system
-- Prefix command system planned for future releases
-- Modern Components V2 user interface
-- Structured and consistent response formatting
-- Improved error handling system
-- Optimized queue management
-- Live lyrics support
-- Node statistics monitoring
-- Advanced uptime and system statistics display
-- Performance-focused architecture
-- Clean and minimal red-themed design
-- Environment-based configuration system
-- Continuous development and updates
-
----
-
-## Supported Audio Platforms
-
-Nexa Music supports multiple streaming sources through Lavalink and LavaSrc plugins.
-
-### Native Support
-- YouTube
-- YouTube Music
-- SoundCloud
-
-### Via LavaSrc Plugin
-- Apple Music
-- Deezer
-- Spotify
-
-Additional platforms may be supported depending on Lavalink configuration.
-
----
-
-## System Requirements
-
-Before installing Nexa Music, ensure your environment meets the following requirements:
-
-### Required Software
-
-- Node.js v18 or higher
-- Java v18 or higher (required for Lavalink)
+## Tech Stack
+- Node.js
+- TypeScript
+- Discord.js v14
+- Riffy
 - Lavalink v4
-- Discord Bot Token
-- SQLite (bundled via `better-sqlite3`) for local playlist storage
+- SQLite (`better-sqlite3`)
+- Drizzle ORM
+- Top.gg SDK (optional vote checks)
+- Genius Lyrics API (optional lyrics)
 
-### Helpful Setup Guides
+## All Technologies Used
 
-Discord Bot Application Setup  
-https://discordjs.guide/preparations/setting-up-a-bot-application.html
+### Core Runtime
+- Node.js
+- TypeScript
+- npm
 
-Lavalink Setup Guide  
-https://lavalink.dev/
+### Discord + Music
+- Discord.js v14
+- Discord Gateway Intents + Interactions API
+- Components V2 (Container/Section/Text/Separator based UI)
+- Riffy (Lavalink client wrapper)
+- Lavalink v4
+- Discord Sharding Manager
 
----
+### Data + Storage
+- SQLite (`better-sqlite3`)
+- Drizzle ORM
 
-## Installation Guide
+### Integrations
+- Top.gg SDK
+- Genius Lyrics API
 
-Follow these steps to install Nexa Music locally.
+### Configuration + Build Tooling
+- dotenv
+- TypeScript Compiler (`tsc`)
+- `tsc-alias` (path alias rewrite for build output)
+- Prettier
 
-### Step 1 — Clone the Repository
+### Project Architecture
+- Slash command system
+- Prefix command adapter system
+- Event-driven handlers (bot + player + node events)
+- Typed custom client (`NexaClient`)
+
+## Project Structure
+
+```txt
+src/
+  commands/
+    interaction/
+      developer/
+      information/
+      music/
+      playlist/
+      utility/
+  events/
+    bot/client/
+    riffy/node/
+    riffy/player/
+  handlers/
+  settings/
+  storage/
+  types/
+  utils/
+```
+
+## Commands Reference
+
+### Information
+- `/about`
+- `/help`
+- `/node`
+- `/ping`
+
+### Music
+- `/autoplay`
+- `/clear`
+- `/join`
+- `/leave`
+- `/loop`
+- `/lyrics`
+- `/nowplaying`
+- `/pause`
+- `/play`
+- `/previous`
+- `/queue`
+- `/remove`
+- `/resume`
+- `/seek`
+- `/shuffle`
+- `/skip`
+- `/stop`
+- `/volume`
+
+### Playlist
+- `/playlist-add`
+- `/playlist-create`
+- `/playlist-delete`
+- `/playlist-load`
+- `/playlist-remove`
+- `/playlist-view`
+
+### Utility
+- `/avatar`
+- `/serverinfo`
+- `/uptime`
+
+### Developer
+- `/eval`
+- `/shards`
+
+## Requirements
+- Node.js 18+
+- Java 17+ (or compatible for Lavalink v4)
+- Running Lavalink v4 node
+- Discord bot token
+
+## Installation
 
 ```bash
 git clone https://github.com/koddyvx/Nexa-Music.git
-```
-
-### Step 2 — Navigate to the Project Directory
-
-```bash
 cd Nexa-Music
-```
-
-### Step 3 — Install Dependencies
-
-```bash
 npm install
 ```
 
----
+## Environment Setup
 
-## Environment Configuration (.env Setup)
-
-Nexa Music uses environment variables for secure configuration.
-
-A file named `.env.example` is included in the repository.
-
-### Step 4 — Create Your .env File
-
-Rename or copy the example file:
+Create `.env` using `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Open the `.env` file and add your bot token:
+Minimum:
 
+```env
+TOKEN=your_discord_bot_token
 ```
-TOKEN=your_discord_bot_token_here
-```
 
-Replace `your_discord_bot_token_here` with your actual Discord bot token.
+Recommended optional values:
+- Top.gg token/webhook values if using vote-gated commands
+- Genius token for `/lyrics`
+- Lavalink node credentials (via config/settings)
 
-Important:
-- Never share your `.env` file publicly.
-- Do not commit `.env` to GitHub.
-- Make sure `.env` is included in your `.gitignore`.
+## Configure Bot
+- Update bot/client settings in `src/settings/config.ts`.
+- Confirm Lavalink host/port/password/secure values.
+- Set developer IDs if using developer-only commands.
 
-This method keeps your bot credentials secure and prevents accidental leaks.
-
----
-
-## Optional Configuration
-
-If using additional features:
-
-- Add Genius token for lyrics support
-- Configure Lavalink node credentials
-- Configure SQLite storage path and filesystem permissions (if needed)
-
-Ensure all required values are properly set before starting the bot.
-
----
-
-## Step 5 — Start the Bot
+## Build And Run
 
 ```bash
-node .
+npm run typecheck
+npm run build
+npm run start
 ```
 
-If everything is configured correctly, the bot will log in and connect to your Lavalink node.
+For direct bot process without sharding manager:
 
----
+```bash
+npm run start:bot
+```
 
-## Project Structure Overview
+## Database Guide (SQLite + Drizzle)
 
-The bot follows a modular architecture:
+### Files
+- DB init: `src/storage/db.ts`
+- Schema: `src/storage/schema.ts`
+- Playlist operations: `src/storage/playlists.ts`
 
-- commands/
-  - interaction/
-  - music/
-  - utility/
-- events/
-- handlers/
-- config.js
-- index.js
-- .env.example
+### Tables
+- `playlists`
+  - owner id
+  - normalized name key
+  - display name
+  - created timestamp
+- `playlist_tracks`
+  - playlist id
+  - title
+  - uri
+  - author
+  - order index
 
-This structure ensures easy scalability, maintainability, and clean separation of logic.
+### Storage Location
+- `storage/nexa.sqlite`
 
----
+## Components V2 UI Guide
+- All panel replies/messages are built with shared helpers in `src/utils/discord.ts`.
+- Message flags include Components V2 support.
+- Help and node panels use collectors and timeout lock behavior.
 
-## Release Highlights (v1.5.0)
+## Permissions Guide For Music
+The bot should have at least:
+- `ViewChannel`
+- `SendMessages`
+- `EmbedLinks`
+- `Connect`
+- `Speak`
 
-- Full migration to Components V2
-- Modern red-themed interface
-- Improved command consistency
-- Advanced error handling
-- Enhanced statistics system
-- Live lyrics integration
-- Node monitoring improvements
-- Secure environment variable configuration
+Users should be in voice for commands that require `inVoice`/`sameVoice`.
 
----
+## Troubleshooting
 
-## Support and Contributions
+### Bot does not start
+- Check `.env` has valid `TOKEN`.
+- Ensure dependencies are installed.
+- Run `npm run typecheck` to detect compile issues.
 
-If you encounter any issues:
+### No audio / cannot join
+- Verify Lavalink is online.
+- Validate node credentials and port/secure settings.
+- Confirm bot voice permissions in the target channel.
 
-- Join the official support server
-- Open a GitHub issue
-- Submit a pull request
+### Slash commands not appearing
+- Confirm `clientid` in config is correct.
+- Restart the bot after changes.
+- Check command registration logs in console.
 
-Contributions are welcome.
+### Help panel or node controls stop responding
+- This is expected after collector timeout.
+- Re-run the command to open a fresh panel.
 
----
+## Contribution Guide
+- Fork the project.
+- Create a feature branch.
+- Keep TS strict checks passing.
+- Submit a PR with clear change notes.
 
-## License
-
-This project is open-source and intended for educational and production use.  
-Please ensure compliance with Discord and platform Terms of Service when deploying.
-
----
-
-Nexa Music continues to evolve with performance, clarity, security, and modern design at its core.
+## Credits
+Built by KoDdy and Razi under Infinity.
