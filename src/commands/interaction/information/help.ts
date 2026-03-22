@@ -50,10 +50,8 @@ const command: SlashCommand = {
       components: [buildCategoryMenu(categories, locked), buildCommandMenu((byCategory.get(selectedCategory) ?? []).map((item) => item.name), locked)],
     });
 
-    const response = await interaction.reply({
-      ...panelReply(renderData(false)),
-      fetchReply: true,
-    });
+    await interaction.reply(panelReply(renderData(false)));
+    const response = await interaction.fetchReply();
 
     const collector = response.createMessageComponentCollector({ time: 60_000 });
 

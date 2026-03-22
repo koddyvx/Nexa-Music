@@ -108,17 +108,15 @@ const command: SlashCommand = {
       components: [locked ? disabledNavigation() : navigation(page, nodes.length)],
     });
 
-    const response = await interaction.reply({
-      ...panelReply({
-        panel: {
-          eyebrow: "Nexa Music",
-          title: `Node diagnostics ${page + 1}/${nodes.length}`,
-          lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
-        },
-        components: [navigation(page, nodes.length)],
-      }),
-      fetchReply: true,
-    });
+    await interaction.reply(panelReply({
+      panel: {
+        eyebrow: "Nexa Music",
+        title: `Node diagnostics ${page + 1}/${nodes.length}`,
+        lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
+      },
+      components: [navigation(page, nodes.length)],
+    }));
+    const response = await interaction.fetchReply();
 
     const collector = response.createMessageComponentCollector({ time: 120_000 });
 
