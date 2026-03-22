@@ -9,8 +9,8 @@
  * https://discord.gg/fbu64BmPFD
  */
 
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { formatTrackDuration, panelMessage, truncate } from "@/utils/discord";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
+import { buildPanel, formatTrackDuration, truncate } from "@/utils/discord";
 import type { ExtendedPlayer, ExtendedTrack, NexaClient } from "@/types";
 
 function controlsRow(paused = false): ActionRowBuilder<ButtonBuilder> {
@@ -32,22 +32,24 @@ export default function registerTrackStart(client: NexaClient): void {
       return;
     }
 
-    const message = await channel.send(
-      panelMessage({
-        panel: {
-          eyebrow: "Nexa Music",
-          title: "Now Playing",
-          imageUrl: track.info.thumbnail,
-          lines: [
-            `[${truncate(track.info.title || "Unknown title", 70)}](${track.info.uri})`,
-            `Artist: ${truncate(track.info.author || "Unknown artist", 48)}`,
-            `Duration: ${formatTrackDuration(track)}`,
-            `Requested by: ${track.info.requester?.user.username ?? "Unknown user"}`,
-          ],
-        },
-        components: [controlsRow(player.paused)],
-      }),
-    );
+    const panel = buildPanel({
+      eyebrow: "Nexa Music",
+      title: "Now Playing",
+      imageUrl: track.info.thumbnail,
+      lines: [
+        `[${truncate(track.info.title || "Unknown title", 70)}](${track.info.uri})`,
+        `Artist: ${truncate(track.info.author || "Unknown artist", 48)}`,
+        `Duration: ${formatTrackDuration(track)}`,
+        `Requested by: ${track.info.requester?.user.username ?? "Unknown user"}`,
+      ],
+    });
+
+    panel.addActionRowComponents(controlsRow(player.paused));
+
+    const message = await channel.send({
+      flags: MessageFlags.IsComponentsV2,
+      components: [panel] as any,
+    });
 
     player.message = message as never;
   });

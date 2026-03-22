@@ -9,34 +9,26 @@
  * https://discord.gg/fbu64BmPFD
  */
 
-import { eq } from "drizzle-orm";
 import { db } from "@/storage/db";
-import { guildSettings } from "@/storage/schema";
 
 export function is247Enabled(guildId: string): boolean {
-  const row = db.select().from(guildSettings).where(eq(guildSettings.guildId, guildId)).get();
-  return Boolean(row?.stay247);
+  const row = db.get<{ stay_247: number }>(
+    "SELECT stay_247 FROM guild_settings WHERE guild_id = ?",
+    [guildId],
+  );
+  return Boolean(row?.stay_247);
 }
 
 export function set247Enabled(guildId: string, enabled: boolean): void {
   const now = new Date().toISOString();
-  const exists = db.select().from(guildSettings).where(eq(guildSettings.guildId, guildId)).get();
-
-  if (!exists) {
-    db.insert(guildSettings).values({
-      guildId,
-      stay247: enabled ? 1 : 0,
-      updatedAt: now,
-    }).run();
-    return;
-  }
-
-  db.update(guildSettings)
-    .set({
-      stay247: enabled ? 1 : 0,
-      updatedAt: now,
-    })
-    .where(eq(guildSettings.guildId, guildId))
-    .run();
+  db.run(
+    `
+      INSERT INTO guild_settings (guild_id, stay_247, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(guild_id) DO UPDATE SET
+        stay_247 = excluded.stay_247,
+        updated_at = excluded.updated_at
+    `,
+    [guildId, enabled ? 1 : 0, now],
+  );
 }
-

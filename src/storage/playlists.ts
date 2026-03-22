@@ -9,9 +9,7 @@
  * https://discord.gg/fbu64BmPFD
  */
 
-import { and, asc, eq, max } from "drizzle-orm";
 import { db } from "@/storage/db";
-import { playlists, playlistTracks } from "@/storage/schema";
 
 interface PlaylistEntry {
   title: string;
@@ -29,26 +27,34 @@ function key(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function getPlaylistRow(ownerId: string, name: string) {
+interface PlaylistRow {
+  id: number;
+  owner_id: string;
+  created_at: string;
+}
+
+function getPlaylistRow(ownerId: string, name: string): PlaylistRow | undefined {
   const nameKey = key(name);
-  return db
-    .select()
-    .from(playlists)
-    .where(and(eq(playlists.ownerId, ownerId), eq(playlists.nameKey, nameKey)))
-    .get();
+  return db.get<PlaylistRow>(
+    `
+      SELECT id, owner_id, created_at
+      FROM playlists
+      WHERE owner_id = ? AND name_key = ?
+    `,
+    [ownerId, nameKey],
+  );
 }
 
 function getPlaylistTracks(playlistId: number): PlaylistEntry[] {
-  return db
-    .select({
-      title: playlistTracks.title,
-      uri: playlistTracks.uri,
-      author: playlistTracks.author,
-    })
-    .from(playlistTracks)
-    .where(eq(playlistTracks.playlistId, playlistId))
-    .orderBy(asc(playlistTracks.orderIndex))
-    .all();
+  return db.all<PlaylistEntry>(
+    `
+      SELECT title, uri, author
+      FROM playlist_tracks
+      WHERE playlist_id = ?
+      ORDER BY order_index ASC
+    `,
+    [playlistId],
+  );
 }
 
 export function createPlaylist(ownerId: string, name: string): PlaylistRecord {
@@ -60,12 +66,13 @@ export function createPlaylist(ownerId: string, name: string): PlaylistRecord {
   }
 
   const createdAt = new Date().toISOString();
-  db.insert(playlists).values({
-    ownerId,
-    nameKey,
-    displayName: name.trim(),
-    createdAt,
-  }).run();
+  db.run(
+    `
+      INSERT INTO playlists (owner_id, name_key, display_name, created_at)
+      VALUES (?, ?, ?, ?)
+    `,
+    [ownerId, nameKey, name.trim(), createdAt],
+  );
 
   return { ownerId, createdAt, tracks: [] };
 }
@@ -77,20 +84,24 @@ export function getPlaylist(ownerId: string, name: string): PlaylistRecord | und
   }
 
   return {
-    ownerId: row.ownerId,
-    createdAt: row.createdAt,
+    ownerId: row.owner_id,
+    createdAt: row.created_at,
     tracks: getPlaylistTracks(row.id),
   };
 }
 
 export function listPlaylists(ownerId: string): string[] {
   return db
-    .select({ displayName: playlists.displayName })
-    .from(playlists)
-    .where(eq(playlists.ownerId, ownerId))
-    .orderBy(asc(playlists.displayName))
-    .all()
-    .map((row) => row.displayName);
+    .all<{ display_name: string }>(
+      `
+        SELECT display_name
+        FROM playlists
+        WHERE owner_id = ?
+        ORDER BY display_name ASC
+      `,
+      [ownerId],
+    )
+    .map((row) => row.display_name);
 }
 
 export function addTrackToPlaylist(ownerId: string, name: string, track: PlaylistEntry): PlaylistRecord {
@@ -100,24 +111,23 @@ export function addTrackToPlaylist(ownerId: string, name: string, track: Playlis
     throw new Error("Playlist not found.");
   }
 
-  const maxOrder = db
-    .select({ value: max(playlistTracks.orderIndex) })
-    .from(playlistTracks)
-    .where(eq(playlistTracks.playlistId, row.id))
-    .get()?.value;
+  const maxOrder = db.get<{ value: number | null }>(
+    "SELECT MAX(order_index) AS value FROM playlist_tracks WHERE playlist_id = ?",
+    [row.id],
+  )?.value;
   const nextOrder = typeof maxOrder === "number" ? maxOrder + 1 : 0;
 
-  db.insert(playlistTracks).values({
-    playlistId: row.id,
-    title: track.title,
-    uri: track.uri,
-    author: track.author,
-    orderIndex: nextOrder,
-  }).run();
+  db.run(
+    `
+      INSERT INTO playlist_tracks (playlist_id, title, uri, author, order_index)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    [row.id, track.title, track.uri, track.author, nextOrder],
+  );
 
   return {
-    ownerId: row.ownerId,
-    createdAt: row.createdAt,
+    ownerId: row.owner_id,
+    createdAt: row.created_at,
     tracks: getPlaylistTracks(row.id),
   };
 }
@@ -129,32 +139,32 @@ export function removeTrackFromPlaylist(ownerId: string, name: string, position:
     throw new Error("Playlist not found.");
   }
 
-  const tracks = db
-    .select({
-      id: playlistTracks.id,
-      orderIndex: playlistTracks.orderIndex,
-    })
-    .from(playlistTracks)
-    .where(eq(playlistTracks.playlistId, row.id))
-    .orderBy(asc(playlistTracks.orderIndex))
-    .all();
+  const tracks = db.all<{ id: number; order_index: number }>(
+    `
+      SELECT id, order_index
+      FROM playlist_tracks
+      WHERE playlist_id = ?
+      ORDER BY order_index ASC
+    `,
+    [row.id],
+  );
 
   if (position < 1 || position > tracks.length) {
     throw new Error("Track position is out of range.");
   }
 
   const target = tracks[position - 1];
-  db.delete(playlistTracks).where(eq(playlistTracks.id, target.id)).run();
+  db.run("DELETE FROM playlist_tracks WHERE id = ?", [target.id]);
 
   const remaining = tracks.filter((track) => track.id !== target.id);
   for (let index = 0; index < remaining.length; index += 1) {
     const entry = remaining[index];
-    db.update(playlistTracks).set({ orderIndex: index }).where(eq(playlistTracks.id, entry.id)).run();
+    db.run("UPDATE playlist_tracks SET order_index = ? WHERE id = ?", [index, entry.id]);
   }
 
   return {
-    ownerId: row.ownerId,
-    createdAt: row.createdAt,
+    ownerId: row.owner_id,
+    createdAt: row.created_at,
     tracks: getPlaylistTracks(row.id),
   };
 }
@@ -166,7 +176,6 @@ export function deletePlaylist(ownerId: string, name: string): void {
     throw new Error("Playlist not found.");
   }
 
-  db.delete(playlistTracks).where(eq(playlistTracks.playlistId, row.id)).run();
-  db.delete(playlists).where(eq(playlists.id, row.id)).run();
+  db.run("DELETE FROM playlist_tracks WHERE playlist_id = ?", [row.id]);
+  db.run("DELETE FROM playlists WHERE id = ?", [row.id]);
 }
-

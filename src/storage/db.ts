@@ -11,8 +11,6 @@
 
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 const storageDir = path.join(process.cwd(), "storage");
 const storageFile = path.join(storageDir, "nexa.sqlite");
@@ -21,7 +19,71 @@ if (!existsSync(storageDir)) {
   mkdirSync(storageDir, { recursive: true });
 }
 
-const sqlite = new Database(storageFile);
+type SqlParams = readonly unknown[];
+type QueryExecutor = {
+  get: (...params: unknown[]) => unknown;
+  all: (...params: unknown[]) => unknown[];
+  run: (...params: unknown[]) => unknown;
+};
+type BunDatabaseLike = {
+  exec: (sql: string) => void;
+  query: (sql: string) => QueryExecutor;
+};
+type BunSqliteModule = {
+  Database: new (filename: string, options?: { create?: boolean }) => BunDatabaseLike;
+};
+
+interface SqliteAdapter {
+  exec(sql: string): void;
+  get<T>(sql: string, params?: SqlParams): T | undefined;
+  all<T>(sql: string, params?: SqlParams): T[];
+  run(sql: string, params?: SqlParams): void;
+}
+
+function createAdapter(): SqliteAdapter {
+  const runtimeRequire = eval("require") as NodeRequire;
+  const isBunRuntime = typeof (globalThis as typeof globalThis & { Bun?: unknown }).Bun !== "undefined";
+
+  if (isBunRuntime) {
+    const { Database } = runtimeRequire("bun:sqlite") as BunSqliteModule;
+    const sqlite = new Database(storageFile, { create: true });
+
+    return {
+      exec(sql: string) {
+        sqlite.exec(sql);
+      },
+      get<T>(sql: string, params: SqlParams = []) {
+        return sqlite.query(sql).get(...params) as T | undefined;
+      },
+      all<T>(sql: string, params: SqlParams = []) {
+        return sqlite.query(sql).all(...params) as T[];
+      },
+      run(sql: string, params: SqlParams = []) {
+        sqlite.query(sql).run(...params);
+      },
+    };
+  }
+
+  const Database = runtimeRequire("better-sqlite3") as typeof import("better-sqlite3");
+  const sqlite = new Database(storageFile);
+
+  return {
+    exec(sql: string) {
+      sqlite.exec(sql);
+    },
+    get<T>(sql: string, params: SqlParams = []) {
+      return sqlite.prepare(sql).get(...params) as T | undefined;
+    },
+    all<T>(sql: string, params: SqlParams = []) {
+      return sqlite.prepare(sql).all(...params) as T[];
+    },
+    run(sql: string, params: SqlParams = []) {
+      sqlite.prepare(sql).run(...params);
+    },
+  };
+}
+
+const sqlite = createAdapter();
 
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS playlists (
@@ -49,4 +111,4 @@ sqlite.exec(`
   );
 `);
 
-export const db = drizzle(sqlite);
+export const db = sqlite;
