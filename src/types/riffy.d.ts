@@ -96,6 +96,7 @@ declare module "riffy" {
     isAutoplay?: boolean;
     message?: Message;
     autoplay?(player: RiffyPlayer): Promise<void> | void;
+    connect(options?: RiffyConnectionOptions & { mute?: boolean }): void;
     play(): Promise<void> | void;
     pause(paused: boolean): Promise<void> | void;
     stop(): Promise<void> | void;

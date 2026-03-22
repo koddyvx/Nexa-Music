@@ -36,18 +36,30 @@ export default function registerVoiceStateUpdate(client: NexaClient): void {
     if (oldState.id === client.user.id && reconnectChannelId && !newState.channelId) {
       if (stayConnected) {
         setTimeout(async () => {
-          const currentPlayer = getPlayer(client, oldState.guild.id);
-          if (currentPlayer) {
+          const activeVoiceChannelId = oldState.guild.members.me?.voice.channelId;
+          if (activeVoiceChannelId) {
             return;
           }
 
+          const currentPlayer = getPlayer(client, oldState.guild.id);
+
           try {
-            await client.riffy.createConnection({
-              guildId: oldState.guild.id,
-              voiceChannel: reconnectChannelId,
-              textChannel: player.textChannel,
-              deaf: true,
-            });
+            if (currentPlayer) {
+              currentPlayer.textChannel = player.textChannel;
+              currentPlayer.connect({
+                guildId: oldState.guild.id,
+                voiceChannel: reconnectChannelId,
+                textChannel: player.textChannel,
+                deaf: true,
+              });
+            } else {
+              await client.riffy.createConnection({
+                guildId: oldState.guild.id,
+                voiceChannel: reconnectChannelId,
+                textChannel: player.textChannel,
+                deaf: true,
+              });
+            }
 
             await textChannel.send(panelMessage({
               panel: {

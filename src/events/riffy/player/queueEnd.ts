@@ -27,11 +27,14 @@ export default function registerQueueEnd(client: NexaClient): void {
       return;
     }
 
-    if (player.paused || player.playing || player.current || player.queue.length > 0) {
+    if (player.paused || player.playing || player.queue.length > 0) {
       return;
     }
 
     if (player.isAutoplay && typeof player.autoplay === "function") {
+      // Riffy keeps the last played track on `current`, but autoplay relies on `previous`.
+      // Clearing `current` here avoids treating a finished track as active playback.
+      player.current = undefined;
       await player.autoplay(player);
       return;
     }

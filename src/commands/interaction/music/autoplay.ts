@@ -37,6 +37,18 @@ const command: SlashCommand = {
 
     player.isAutoplay = !player.isAutoplay;
 
+    if (
+      player.isAutoplay &&
+      !player.playing &&
+      !player.paused &&
+      player.queue.length === 0 &&
+      player.previous &&
+      typeof player.autoplay === "function"
+    ) {
+      player.current = undefined;
+      await player.autoplay(player);
+    }
+
     await interaction.reply(panelReply({
       panel: {
         eyebrow: "Playback",
