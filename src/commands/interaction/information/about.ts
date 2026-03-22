@@ -20,7 +20,10 @@ const command: SlashCommand = {
     const guilds = client.guilds.cache.size;
     const users = client.guilds.cache.reduce((total, guild) => total + guild.memberCount, 0);
     const players = client.riffy.players.size;
-    const connectedNodes = Array.from(client.riffy.nodes.values()).filter((node) => node.isConnected).length;
+    const runtimeNodes = Array.from(((client.riffy as typeof client.riffy & {
+      nodeMap?: Map<string, { connected?: boolean; isConnected?: boolean }>;
+    }).nodeMap ?? new Map()).values());
+    const connectedNodes = runtimeNodes.filter((node) => node.connected ?? node.isConnected).length;
     const uptime = process.uptime();
     const days = Math.floor(uptime / 86400);
     const hours = Math.floor((uptime % 86400) / 3600);

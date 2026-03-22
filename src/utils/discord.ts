@@ -101,6 +101,10 @@ export function buildPanel(options: PanelOptions): ContainerBuilder {
 
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
 
+  if (!options.subtle) {
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  }
+
   const mainText = [options.description, ...bodyLines].filter(Boolean).join("\n\n");
 
   if (options.imageUrl) {
@@ -110,10 +114,6 @@ export function buildPanel(options: PanelOptions): ContainerBuilder {
     container.addSectionComponents(section);
   } else if (mainText) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(mainText));
-  }
-
-  if (!options.subtle) {
-    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
   }
 
   return container;

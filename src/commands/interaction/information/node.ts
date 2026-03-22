@@ -11,20 +11,50 @@
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { panelEdit, panelReply } from "@/utils/discord";
-import type { SlashCommand } from "@/types";
+import type { NexaClient, SlashCommand } from "@/types";
 import type { RiffyNode } from "riffy";
 
-function describeNode(node: RiffyNode, index: number): string[] {
+type RuntimeNode = RiffyNode & {
+  connected?: boolean;
+  sessionId?: string | null;
+  restUrl?: string;
+  host?: string;
+  port?: number;
+  secure?: boolean;
+  lastStats?: number;
+};
+
+function getNodes(client: NexaClient): RuntimeNode[] {
+  const riffyWithNodeMap = client.riffy as typeof client.riffy & {
+    nodeMap?: Map<string, RuntimeNode>;
+  };
+
+  if (riffyWithNodeMap.nodeMap) {
+    return Array.from(riffyWithNodeMap.nodeMap.values());
+  }
+
+  return Array.from(client.riffy.nodes.values()) as RuntimeNode[];
+}
+
+function describeNode(node: RuntimeNode, index: number): string[] {
   const memory = node.stats?.memory;
   const cpu = node.stats?.cpu;
+  const isConnected = node.connected ?? node.isConnected ?? false;
+  const ping = typeof node.ping === "number" && node.ping >= 0 ? `${node.ping}ms` : "Unavailable";
+  const lastStatsAgeMs = typeof node.lastStats === "number" ? Date.now() - node.lastStats : undefined;
+  const statsFreshness = typeof lastStatsAgeMs === "number" ? `${Math.max(0, Math.floor(lastStatsAgeMs / 1000))}s ago` : "Unavailable";
+  const endpoint = node.restUrl ?? (node.host ? `${node.secure ? "https" : "http"}://${node.host}:${node.port ?? 2333}` : "Unavailable");
 
   return [
     `Node: ${node.name ?? node.info?.identifier ?? `Node ${index + 1}`}`,
-    `Status: ${node.isConnected ? "Connected" : "Disconnected"}`,
-    `Ping: ${node.ping ? `${node.ping}ms` : "Unavailable"}`,
+    `Status: ${isConnected ? "Connected" : "Disconnected"}`,
+    `Session: ${node.sessionId ?? "Unavailable"}`,
+    `Endpoint: ${endpoint}`,
+    `Ping: ${ping}`,
     `Players: ${node.stats?.players ?? 0}`,
     `Playing players: ${node.stats?.playingPlayers ?? 0}`,
     `Uptime: ${node.stats?.uptime ? `${Math.floor(node.stats.uptime / 1000)}s` : "Unavailable"}`,
+    `Stats updated: ${statsFreshness}`,
     `CPU cores: ${cpu?.cores ?? "Unavailable"}`,
     `System load: ${(((cpu?.systemLoad ?? 0) as number) * 100).toFixed(2)}%`,
     `Lavalink load: ${(((cpu?.lavalinkLoad ?? 0) as number) * 100).toFixed(2)}%`,
@@ -54,7 +84,7 @@ const command: SlashCommand = {
   description: "Inspect Lavalink node health and load.",
 
   async run(client, interaction) {
-    let nodes = Array.from(client.riffy.nodes.values());
+    let nodes = getNodes(client);
 
     if (nodes.length === 0) {
       await interaction.reply(panelReply({
@@ -118,7 +148,7 @@ const command: SlashCommand = {
       }
 
       if (buttonInteraction.customId === "node_refresh") {
-        nodes = Array.from(client.riffy.nodes.values());
+        nodes = getNodes(client);
         if (nodes.length === 0) {
           await buttonInteraction.update(panelEdit({
             panel: {
