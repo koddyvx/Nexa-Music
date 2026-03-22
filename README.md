@@ -23,7 +23,7 @@ Nexa Music is built using:
 - Lavalink v4 (Audio processing node)
 - Discord.js (Slash command interactions)
 - Components V2 (Modern structured UI system)
-- MongoDB (Optional persistent storage)
+- SQLite + Drizzle ORM (persistent playlist storage)
 - Environment Variable Configuration (.env)
 
 The bot follows a modular command structure to ensure maintainability and scalability.
@@ -78,7 +78,7 @@ Before installing Nexa Music, ensure your environment meets the following requir
 - Java v18 or higher (required for Lavalink)
 - Lavalink v4
 - Discord Bot Token
-- MongoDB v5.x or higher (only required if using local database storage)
+- SQLite (bundled via `better-sqlite3`) for local playlist storage
 
 ### Helpful Setup Guides
 
@@ -151,7 +151,7 @@ If using additional features:
 
 - Add Genius token for lyrics support
 - Configure Lavalink node credentials
-- Configure MongoDB connection (if enabled)
+- Configure SQLite storage path and filesystem permissions (if needed)
 
 Ensure all required values are properly set before starting the bot.
 

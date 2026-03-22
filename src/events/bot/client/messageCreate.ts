@@ -1,3 +1,14 @@
+/**
+ * Project: Nexa Music
+ * Author: KoDdy, Razi
+ * Organization: Infinity
+ *
+ * This project is open-source and free to use, modify, and distribute.
+ * If you encounter any issues, errors, or have questions,
+ * please contact us through the official support server:
+ * https://discord.gg/fbu64BmPFD
+ */
+
 import type { GuildTextBasedChannel } from "discord.js";
 import { PermissionsBitField } from "discord.js";
 import { ensureMessageContent, getPrefixCommand } from "@/utils/commands";
@@ -50,6 +61,33 @@ export default function registerMessageCreate(client: NexaClient): void {
         const permissions = PermissionsBitField.resolve(command.clientPermissions);
         if (!permissionChannel.permissionsFor(message.guild.members.me)?.has(permissions)) {
           await message.channel.send(panelMessage({ panel: { eyebrow: "Permissions", title: "Bot permissions missing", description: `I need these permissions: ${command.clientPermissions.join(", ")}.` } }));
+          return;
+        }
+      }
+
+      if (command.category === "music" && message.guild.members.me) {
+        const me = message.guild.members.me;
+        const voicePermissions = message.member?.voice.channel?.permissionsFor(me);
+        const textPermissions = permissionChannel.permissionsFor(me);
+        const missingVoice = !voicePermissions?.has([
+          PermissionsBitField.Flags.Connect,
+          PermissionsBitField.Flags.Speak,
+          PermissionsBitField.Flags.ViewChannel,
+        ]);
+        const missingText = !textPermissions?.has([
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages,
+          PermissionsBitField.Flags.EmbedLinks,
+        ]);
+
+        if (missingVoice || missingText) {
+          await message.channel.send(panelMessage({
+            panel: {
+              eyebrow: "Permissions",
+              title: "Missing music permissions",
+              description: "I need ViewChannel, SendMessages, EmbedLinks, Connect, and Speak permissions to run music commands.",
+            },
+          }));
           return;
         }
       }
