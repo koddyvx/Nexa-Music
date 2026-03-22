@@ -10,14 +10,18 @@
  */
 
 import { createPrefixAdapter } from "@/utils/prefixAdapter";
-import type { NexaClient } from "@/types";
+import type { NexaClient, SlashCommand } from "@/types";
 import { log } from "@/utils/logger";
 
-export default function loadPrefixCommands(client: NexaClient): void {
+export default function loadPrefixCommands(client: NexaClient, commandList: SlashCommand[]): void {
   client.commands.clear();
   client.aliases.clear();
 
-  for (const slashCommand of client.slashCommands.values()) {
+  for (const slashCommand of commandList) {
+    if (slashCommand.prefixcmd === false) {
+      continue;
+    }
+
     const prefixCommand = createPrefixAdapter(slashCommand);
     client.commands.set(prefixCommand.name, prefixCommand);
 

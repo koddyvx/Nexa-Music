@@ -12,7 +12,7 @@
 import type { GuildTextBasedChannel } from "discord.js";
 import { PermissionsBitField } from "discord.js";
 import { ensureMessageContent, getPrefixCommand } from "@/utils/commands";
-import { panelMessage } from "@/utils/discord";
+import { buildTopggVoteButton, panelMessage } from "@/utils/discord";
 import { hasTopggVote } from "@/utils/topgg";
 import type { NexaClient } from "@/types";
 
@@ -44,7 +44,15 @@ export default function registerMessageCreate(client: NexaClient): void {
       if (command.voteOnly) {
         const voted = await hasTopggVote(client, message.author.id);
         if (!voted) {
-          await message.channel.send(panelMessage({ panel: { eyebrow: "Vote required", title: "Top.gg vote required", description: "Vote for the bot on Top.gg to unlock this command." } }));
+          const voteButton = buildTopggVoteButton(client.config.clientid);
+          await message.channel.send(panelMessage({
+            panel: {
+              eyebrow: "Vote required",
+              title: "Top.gg vote required",
+              description: "Vote for the bot on Top.gg to unlock this command.",
+            },
+            components: voteButton ? [voteButton] : undefined,
+          }));
           return;
         }
       }

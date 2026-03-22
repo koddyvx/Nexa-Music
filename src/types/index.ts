@@ -64,6 +64,8 @@ export interface ExtendedPlayer extends Omit<RiffyPlayer, "current" | "previous"
 }
 
 export interface BaseCommandOptions {
+  slashcmd?: boolean;
+  prefixcmd?: boolean;
   developerOnly?: boolean;
   voteOnly?: boolean;
   userPermissions?: PermissionResolvable[];

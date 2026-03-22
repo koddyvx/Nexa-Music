@@ -17,6 +17,25 @@ import type { NexaClient, SlashCommand } from "@/types";
 import loadPrefixCommands from "@/handlers/prefixcommand";
 import { log } from "@/utils/logger";
 
+function walkFiles(directoryPath: string): string[] {
+  const entries = readdirSync(directoryPath, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(directoryPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(fullPath));
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith(".js")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
 async function cleanupOldCommands(rest: REST, clientId: string, validNames: Set<string>): Promise<void> {
   const existing = await rest.get(Routes.applicationCommands(clientId)) as RESTGetAPIApplicationCommandsResult;
 
@@ -38,36 +57,40 @@ async function resetCommandsIfRequested(rest: REST, clientId: string): Promise<v
 }
 
 export default async function loadSlashCommands(client: NexaClient): Promise<void> {
-  const commandsRoot = path.join(__dirname, "../commands/interaction");
+  const commandsRoot = path.join(__dirname, "../commands");
+  const commandFiles = walkFiles(commandsRoot);
+  const commandRegistry: SlashCommand[] = [];
   const slashCommands: SlashCommand[] = [];
   let commandCount = 0;
 
-  for (const directory of readdirSync(commandsRoot)) {
-    const directoryPath = path.join(commandsRoot, directory);
-    const commandFiles = readdirSync(directoryPath).filter((file) => file.endsWith(".js"));
+  for (const filePath of commandFiles) {
+    try {
+      const moduleValue = require(filePath) as SlashCommand | { default: SlashCommand };
+      const command: SlashCommand = "default" in moduleValue ? moduleValue.default : moduleValue;
 
-    for (const file of commandFiles) {
-      try {
-        const moduleValue = require(path.join(directoryPath, file)) as SlashCommand | { default: SlashCommand };
-        const command: SlashCommand = "default" in moduleValue ? moduleValue.default : moduleValue;
+      if (!command.name || !command.description) {
+        log("warn", "commands", `Skipping ${path.basename(filePath)} because it is missing name or description`);
+        continue;
+      }
 
-        if (!command.name || !command.description) {
-          log("warn", "commands", `Skipping ${file} because it is missing name or description`);
-          continue;
-        }
+      const relativeDirectory = path.dirname(path.relative(commandsRoot, filePath));
+      const category = command.category ?? path.basename(relativeDirectory);
+      command.category = category;
 
-        command.category = directory;
+      commandRegistry.push(command);
+      if (command.slashcmd !== false) {
         slashCommands.push(command);
         client.slashCommands.set(command.name, command);
-        commandCount += 1;
-      } catch (error) {
-        log("error", "commands", `Failed to load ${file}`, error);
       }
+
+      commandCount += 1;
+    } catch (error) {
+      log("error", "commands", `Failed to load ${path.basename(filePath)}`, error);
     }
   }
 
-  loadPrefixCommands(client);
-  log("success", "commands", `Loaded ${commandCount} slash commands`);
+  loadPrefixCommands(client, commandRegistry);
+  log("success", "commands", `Loaded ${commandCount} hybrid command files (${slashCommands.length} slash enabled, ${client.commands.size} prefix enabled)`);
 
   if (!client.config.clientid) {
     throw new Error("Missing client ID in the bot configuration.");

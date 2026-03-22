@@ -11,7 +11,7 @@
 
 import { PermissionsBitField, type GuildTextBasedChannel, type GuildMember } from "discord.js";
 import { getPlayer } from "@/utils/commands";
-import { panelReply } from "@/utils/discord";
+import { buildTopggVoteButton, panelReply } from "@/utils/discord";
 import { hasTopggVote } from "@/utils/topgg";
 import type { NexaClient } from "@/types";
 
@@ -138,7 +138,16 @@ export default function registerInteractionCreate(client: NexaClient): void {
       if (command.voteOnly) {
         const voted = await hasTopggVote(client, interaction.user.id);
         if (!voted) {
-          await interaction.reply(panelReply({ ephemeral: true, panel: { eyebrow: "Vote required", title: "Top.gg vote required", description: "Vote for the bot on Top.gg to unlock this command." } }));
+          const voteButton = buildTopggVoteButton(client.config.clientid);
+          await interaction.reply(panelReply({
+            ephemeral: true,
+            panel: {
+              eyebrow: "Vote required",
+              title: "Top.gg vote required",
+              description: "Vote for the bot on Top.gg to unlock this command.",
+            },
+            components: voteButton ? [voteButton] : undefined,
+          }));
           return;
         }
       }

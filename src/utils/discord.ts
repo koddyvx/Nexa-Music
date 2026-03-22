@@ -11,6 +11,8 @@
 
 import {
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   ContainerBuilder,
   MessageFlags,
   StringSelectMenuOptionBuilder,
@@ -169,6 +171,19 @@ export function buildCategoryMenu(categoryNames: string[], disabled = false): Ac
             .setDescription(`Browse ${name} commands`.slice(0, 100)),
         ),
       ),
+  );
+}
+
+export function buildTopggVoteButton(botId?: string): ActionRowBuilder<ButtonBuilder> | undefined {
+  if (!botId?.trim()) {
+    return undefined;
+  }
+
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("Vote Now")
+      .setStyle(ButtonStyle.Link)
+      .setURL(`https://top.gg/bot/${botId.trim()}/vote`),
   );
 }
 

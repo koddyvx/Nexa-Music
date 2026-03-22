@@ -61,7 +61,20 @@ Nexa Music v2 is a TypeScript Discord music bot built on Discord.js v14, Lavalin
 - Safer error handling with TypeScript narrowing.
 - Stricter command interaction checks (`inGuild`, player/current checks).
 
+## Hybrid Command System
+- Commands are now loaded recursively from `src/commands`, not tied to `interaction` folder.
+- Use one file for both prefix and slash.
+- Per-command flags:
+  - `slashcmd: true | false`
+  - `prefixcmd: true | false`
+- Example file:
+  - `src/commands/hybrid/nexa.ts`
+- Example behavior:
+  - `/nexa` (slash)
+  - `-nexa` and `-nx` (prefix alias)
+
 ## Tech Stack
+- Bun (primary runtime)
 - Node.js
 - TypeScript
 - Discord.js v14
@@ -75,6 +88,7 @@ Nexa Music v2 is a TypeScript Discord music bot built on Discord.js v14, Lavalin
 ## All Technologies Used
 
 ### Core Runtime
+- Bun
 - Node.js
 - TypeScript
 - npm
@@ -176,6 +190,7 @@ src/
 - `/shards`
 
 ## Requirements
+- Bun 1.2+ (recommended runtime)
 - Node.js 18+
 - Java 17+ (or compatible for Lavalink v4)
 - Running Lavalink v4 node
@@ -186,6 +201,12 @@ src/
 ```bash
 git clone https://github.com/koddyvx/Nexa-Music.git
 cd Nexa-Music
+bun install
+```
+
+Node fallback:
+
+```bash
 npm install
 ```
 
@@ -216,15 +237,23 @@ Recommended optional values:
 ## Build And Run
 
 ```bash
-npm run typecheck
-npm run build
-npm run start
+bun run typecheck
+bun run build
+bun run start
 ```
 
 For direct bot process without sharding manager:
 
 ```bash
-npm run start:bot
+bun run start:bot
+```
+
+Node fallback:
+
+```bash
+npm run typecheck
+npm run build
+npm run start:node
 ```
 
 ## Database Guide (SQLite + Drizzle)

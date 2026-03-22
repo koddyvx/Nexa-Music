@@ -17,7 +17,7 @@ const config: BotConfig = {
   engine: "ytsearch",
   color: 0xff0000,
   geniusToken: "",
-  developers: [""],
+  developers: ["875402851986325504"],
   nodes: [
     {
       name: "nexa-1",

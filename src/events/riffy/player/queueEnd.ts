@@ -15,14 +15,19 @@ import type { ExtendedPlayer, NexaClient } from "@/types";
 
 export default function registerQueueEnd(client: NexaClient): void {
   client.riffy.on("queueEnd", async (rawPlayer) => {
-    const player = rawPlayer as ExtendedPlayer;
+    const initialPlayer = rawPlayer as ExtendedPlayer;
 
-    if (player.message) {
-      await player.message.delete().catch(() => undefined);
-    }
+    // Queue/end events can race with pause/resume and next-track transitions.
+    // Re-check player state after a short grace period before destructive actions.
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
+    const player = (client.riffy.players.get(initialPlayer.guildId) as ExtendedPlayer | undefined) ?? initialPlayer;
     const channel = client.channels.cache.get(player.textChannel);
     if (!channel || !("send" in channel) || typeof channel.send !== "function") {
+      return;
+    }
+
+    if (player.paused || player.playing || player.current || player.queue.length > 0) {
       return;
     }
 
@@ -40,6 +45,10 @@ export default function registerQueueEnd(client: NexaClient): void {
         },
       })).catch(() => undefined);
       return;
+    }
+
+    if (player.message) {
+      await player.message.delete().catch(() => undefined);
     }
 
     await player.destroy();
