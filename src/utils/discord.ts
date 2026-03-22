@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ContainerBuilder,
   MessageFlags,
+  StringSelectMenuOptionBuilder,
   SectionBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
@@ -79,16 +80,11 @@ export function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
 }
 
-export function reddishText(value: string): string {
-  return `\` ${value.toUpperCase()} \``;
-}
-
 export function buildPanel(options: PanelOptions): ContainerBuilder {
   const container = new ContainerBuilder();
   const bodyLines = options.lines?.filter(Boolean) ?? [];
-  const header = [options.eyebrow ? reddishText(options.eyebrow) : undefined, `## ${options.title}`]
-    .filter(Boolean)
-    .join("\n");
+  const eyebrow = options.eyebrow ? `### ${options.eyebrow}\n` : "";
+  const header = `${eyebrow}## ${options.title}`;
 
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
 
@@ -119,6 +115,7 @@ export function panelReply(options: PanelMessageOptions): InteractionReplyOption
 
 export function panelEdit(options: PanelEditOptions): InteractionUpdateOptions & MessageEditOptions {
   return {
+    flags: MessageFlags.IsComponentsV2,
     components: [buildPanel(options.panel), ...(options.components ?? [])] as any,
   };
 }
@@ -130,12 +127,37 @@ export function panelMessage(options: PanelMessageOptions): MessageReplyOptions 
   };
 }
 
-export function buildCommandMenu(commandNames: string[]): ActionRowBuilder<StringSelectMenuBuilder> {
+export function buildCommandMenu(commandNames: string[], disabled = false): ActionRowBuilder<StringSelectMenuBuilder> {
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId("help_select")
       .setPlaceholder("Select a command")
-      .addOptions(commandNames.map((name) => ({ label: name, value: name, description: `Open /${name}`.slice(0, 100) }))),
+      .setDisabled(disabled)
+      .addOptions(
+        commandNames.map((name) =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(name)
+            .setValue(name)
+            .setDescription(`Open /${name}`.slice(0, 100)),
+        ),
+      ),
+  );
+}
+
+export function buildCategoryMenu(categoryNames: string[], disabled = false): ActionRowBuilder<StringSelectMenuBuilder> {
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId("help_category")
+      .setPlaceholder("Select a category")
+      .setDisabled(disabled)
+      .addOptions(
+        categoryNames.map((name) =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(name)
+            .setValue(name)
+            .setDescription(`Browse ${name} commands`.slice(0, 100)),
+        ),
+      ),
   );
 }
 

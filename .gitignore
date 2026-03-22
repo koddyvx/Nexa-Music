@@ -2,6 +2,7 @@ node_modules
 package-lock.json
 .env
 dist
+bun.lock
 
 # Project: Nexa Music
 # Author: KoDdy, Razi

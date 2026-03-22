@@ -26,7 +26,15 @@ function navigation(page: number, pages: number): ActionRowBuilder<ButtonBuilder
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId("node_prev").setLabel("Previous").setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
     new ButtonBuilder().setCustomId("node_next").setLabel("Next").setStyle(ButtonStyle.Secondary).setDisabled(page === pages - 1),
-    new ButtonBuilder().setCustomId("node_refresh").setLabel("Refresh").setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId("node_refresh").setLabel("Refresh").setStyle(ButtonStyle.Primary),
+  );
+}
+
+function disabledNavigation(page: number, pages: number): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId("node_prev").setLabel("Previous").setStyle(ButtonStyle.Secondary).setDisabled(true),
+    new ButtonBuilder().setCustomId("node_next").setLabel("Next").setStyle(ButtonStyle.Secondary).setDisabled(true),
+    new ButtonBuilder().setCustomId("node_refresh").setLabel("Refresh").setStyle(ButtonStyle.Primary).setDisabled(true),
   );
 }
 
@@ -41,7 +49,7 @@ const command: SlashCommand = {
       await interaction.reply(panelReply({
         ephemeral: true,
         panel: {
-          eyebrow: "Reddish diagnostics",
+          eyebrow: "Nexa Music",
           title: "No nodes available",
           description: "There are no Lavalink nodes connected right now.",
         },
@@ -50,28 +58,28 @@ const command: SlashCommand = {
     }
 
     let page = 0;
-    const render = () => panelEdit({
+    const render = (locked = false) => panelEdit({
       panel: {
-        eyebrow: "Reddish diagnostics",
+        eyebrow: "Nexa Music",
         title: `Node diagnostics ${page + 1}/${nodes.length}`,
-        lines: describeNode(nodes[page], page),
+        lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
       },
-      components: [navigation(page, nodes.length)],
+      components: [locked ? disabledNavigation(page, nodes.length) : navigation(page, nodes.length)],
     });
 
     const response = await interaction.reply({
       ...panelReply({
         panel: {
-          eyebrow: "Reddish diagnostics",
+          eyebrow: "Nexa Music",
           title: `Node diagnostics ${page + 1}/${nodes.length}`,
-          lines: describeNode(nodes[page], page),
+          lines: nodes[page] ? describeNode(nodes[page], page) : ["Node data is unavailable. Press refresh."],
         },
         components: [navigation(page, nodes.length)],
       }),
       fetchReply: true,
     });
 
-    const collector = response.createMessageComponentCollector({ time: 300_000 });
+    const collector = response.createMessageComponentCollector({ time: 120_000 });
 
     collector.on("collect", async (buttonInteraction) => {
       if (!buttonInteraction.isButton()) {
@@ -100,10 +108,27 @@ const command: SlashCommand = {
 
       if (buttonInteraction.customId === "node_refresh") {
         nodes = Array.from(client.riffy.nodes.values());
+        if (nodes.length === 0) {
+          await buttonInteraction.update(panelEdit({
+            panel: {
+              eyebrow: "Nexa Music",
+              title: "No nodes available",
+              description: "There are no Lavalink nodes connected right now.",
+            },
+            components: [disabledNavigation(0, 1)],
+          }));
+          collector.stop("no_nodes");
+          return;
+        }
+
         page = Math.min(page, Math.max(nodes.length - 1, 0));
       }
 
-      await buttonInteraction.update(render());
+      await buttonInteraction.update(render(false));
+    });
+
+    collector.on("end", async () => {
+      await response.edit(render(true)).catch(() => undefined);
     });
   },
 };
