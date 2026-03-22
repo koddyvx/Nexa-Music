@@ -1,4 +1,4 @@
-import { Collection, GatewayIntentBits, ActivityType } from "discord.js";
+import { Collection, GatewayIntentBits } from "discord.js";
 import { Riffy } from "riffy";
 import "dotenv/config";
 import { createTopggClient, postTopggStats } from "@/utils/topgg";
@@ -74,22 +74,13 @@ client.on("shardError", (error, shardId) => {
   log("error", "shard", `Shard ${shardId} error`, error);
 });
 
-client.on("ready", async () => {
-  if (!client.user) {
-    return;
-  }
-
-  client.user.setPresence({
-    activities: [{ name: "music across your servers", type: ActivityType.Playing }],
-    status: "idle",
-  });
-
-  await postTopggStats(client);
-});
-
 client.riffy.on("nodeError", (node, error) => {
   const nodeName = (node as { name?: string }).name ?? "unknown";
   log("error", "riffy", `Node ${nodeName} reported an error`, error);
+});
+
+client.on("shardReady", async () => {
+  await postTopggStats(client);
 });
 
 void Promise.all([loadEvents(client), loadRiffyEvents(client), loadSlashCommands(client)]).then(() => {

@@ -13,7 +13,7 @@ const command: SlashCommand = {
 
     await interaction.reply(panelReply({
       panel: {
-        eyebrow: "Reddish status",
+        eyebrow: "Nexa Music",
         title: "Connection status",
         lines: [
           `Gateway latency: ${client.ws.ping}ms`,

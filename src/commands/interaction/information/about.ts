@@ -17,7 +17,7 @@ const command: SlashCommand = {
 
     await interaction.reply(panelReply({
       panel: {
-        eyebrow: "Reddish overview",
+        eyebrow: "Nexa Music",
         title: "About Nexa Music",
         lines: [
           "Nexa Music is a Discord playback bot powered by Lavalink v4 and Riffy.",

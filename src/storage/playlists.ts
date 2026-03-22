@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import { and, asc, eq, max } from "drizzle-orm";
+import { db } from "@/storage/db";
+import { playlists, playlistTracks } from "@/storage/schema";
 
 interface PlaylistEntry {
   title: string;
@@ -13,109 +14,148 @@ interface PlaylistRecord {
   tracks: PlaylistEntry[];
 }
 
-type PlaylistDatabase = Record<string, Record<string, PlaylistRecord>>;
-
-const storageDir = path.join(process.cwd(), "storage");
-const storageFile = path.join(storageDir, "playlists.json");
-
-function ensureStorage(): void {
-  if (!existsSync(storageDir)) {
-    mkdirSync(storageDir, { recursive: true });
-  }
-
-  if (!existsSync(storageFile)) {
-    writeFileSync(storageFile, JSON.stringify({}, null, 2), "utf8");
-  }
-}
-
-function readDatabase(): PlaylistDatabase {
-  ensureStorage();
-  return JSON.parse(readFileSync(storageFile, "utf8")) as PlaylistDatabase;
-}
-
-function writeDatabase(data: PlaylistDatabase): void {
-  ensureStorage();
-  writeFileSync(storageFile, JSON.stringify(data, null, 2), "utf8");
-}
-
 function key(name: string): string {
   return name.trim().toLowerCase();
 }
 
-export function createPlaylist(ownerId: string, name: string): PlaylistRecord {
-  const db = readDatabase();
-  const ownerPlaylists = db[ownerId] ?? {};
-  const playlistName = key(name);
+function getPlaylistRow(ownerId: string, name: string) {
+  const nameKey = key(name);
+  return db
+    .select()
+    .from(playlists)
+    .where(and(eq(playlists.ownerId, ownerId), eq(playlists.nameKey, nameKey)))
+    .get();
+}
 
-  if (ownerPlaylists[playlistName]) {
+function getPlaylistTracks(playlistId: number): PlaylistEntry[] {
+  return db
+    .select({
+      title: playlistTracks.title,
+      uri: playlistTracks.uri,
+      author: playlistTracks.author,
+    })
+    .from(playlistTracks)
+    .where(eq(playlistTracks.playlistId, playlistId))
+    .orderBy(asc(playlistTracks.orderIndex))
+    .all();
+}
+
+export function createPlaylist(ownerId: string, name: string): PlaylistRecord {
+  const nameKey = key(name);
+  const exists = getPlaylistRow(ownerId, name);
+
+  if (exists) {
     throw new Error("A playlist with that name already exists.");
   }
 
-  ownerPlaylists[playlistName] = {
+  const createdAt = new Date().toISOString();
+  db.insert(playlists).values({
     ownerId,
-    createdAt: new Date().toISOString(),
-    tracks: [],
-  };
+    nameKey,
+    displayName: name.trim(),
+    createdAt,
+  }).run();
 
-  db[ownerId] = ownerPlaylists;
-  writeDatabase(db);
-  return ownerPlaylists[playlistName];
+  return { ownerId, createdAt, tracks: [] };
 }
 
 export function getPlaylist(ownerId: string, name: string): PlaylistRecord | undefined {
-  const db = readDatabase();
-  return db[ownerId]?.[key(name)];
+  const row = getPlaylistRow(ownerId, name);
+  if (!row) {
+    return undefined;
+  }
+
+  return {
+    ownerId: row.ownerId,
+    createdAt: row.createdAt,
+    tracks: getPlaylistTracks(row.id),
+  };
 }
 
 export function listPlaylists(ownerId: string): string[] {
-  const db = readDatabase();
-  return Object.keys(db[ownerId] ?? {}).sort();
+  return db
+    .select({ displayName: playlists.displayName })
+    .from(playlists)
+    .where(eq(playlists.ownerId, ownerId))
+    .orderBy(asc(playlists.displayName))
+    .all()
+    .map((row) => row.displayName);
 }
 
 export function addTrackToPlaylist(ownerId: string, name: string, track: PlaylistEntry): PlaylistRecord {
-  const db = readDatabase();
-  const ownerPlaylists = db[ownerId] ?? {};
-  const playlist = ownerPlaylists[key(name)];
+  const row = getPlaylistRow(ownerId, name);
 
-  if (!playlist) {
+  if (!row) {
     throw new Error("Playlist not found.");
   }
 
-  playlist.tracks.push(track);
-  db[ownerId] = ownerPlaylists;
-  writeDatabase(db);
-  return playlist;
+  const maxOrder = db
+    .select({ value: max(playlistTracks.orderIndex) })
+    .from(playlistTracks)
+    .where(eq(playlistTracks.playlistId, row.id))
+    .get()?.value;
+  const nextOrder = typeof maxOrder === "number" ? maxOrder + 1 : 0;
+
+  db.insert(playlistTracks).values({
+    playlistId: row.id,
+    title: track.title,
+    uri: track.uri,
+    author: track.author,
+    orderIndex: nextOrder,
+  }).run();
+
+  return {
+    ownerId: row.ownerId,
+    createdAt: row.createdAt,
+    tracks: getPlaylistTracks(row.id),
+  };
 }
 
 export function removeTrackFromPlaylist(ownerId: string, name: string, position: number): PlaylistRecord {
-  const db = readDatabase();
-  const ownerPlaylists = db[ownerId] ?? {};
-  const playlist = ownerPlaylists[key(name)];
+  const row = getPlaylistRow(ownerId, name);
 
-  if (!playlist) {
+  if (!row) {
     throw new Error("Playlist not found.");
   }
 
-  if (position < 1 || position > playlist.tracks.length) {
+  const tracks = db
+    .select({
+      id: playlistTracks.id,
+      orderIndex: playlistTracks.orderIndex,
+    })
+    .from(playlistTracks)
+    .where(eq(playlistTracks.playlistId, row.id))
+    .orderBy(asc(playlistTracks.orderIndex))
+    .all();
+
+  if (position < 1 || position > tracks.length) {
     throw new Error("Track position is out of range.");
   }
 
-  playlist.tracks.splice(position - 1, 1);
-  db[ownerId] = ownerPlaylists;
-  writeDatabase(db);
-  return playlist;
+  const target = tracks[position - 1];
+  db.delete(playlistTracks).where(eq(playlistTracks.id, target.id)).run();
+
+  const remaining = tracks.filter((track) => track.id !== target.id);
+  for (let index = 0; index < remaining.length; index += 1) {
+    const entry = remaining[index];
+    db.update(playlistTracks).set({ orderIndex: index }).where(eq(playlistTracks.id, entry.id)).run();
+  }
+
+  return {
+    ownerId: row.ownerId,
+    createdAt: row.createdAt,
+    tracks: getPlaylistTracks(row.id),
+  };
 }
 
 export function deletePlaylist(ownerId: string, name: string): void {
-  const db = readDatabase();
-  const ownerPlaylists = db[ownerId] ?? {};
-  const playlistName = key(name);
+  const row = getPlaylistRow(ownerId, name);
 
-  if (!ownerPlaylists[playlistName]) {
+  if (!row) {
     throw new Error("Playlist not found.");
   }
 
-  delete ownerPlaylists[playlistName];
-  db[ownerId] = ownerPlaylists;
-  writeDatabase(db);
+  db.delete(playlistTracks).where(eq(playlistTracks.playlistId, row.id)).run();
+  db.delete(playlists).where(eq(playlists.id, row.id)).run();
 }
+
