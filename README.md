@@ -171,7 +171,7 @@ Optional:
 
 ### 4. Configure the bot
 
-Update [src/settings/config.ts](/media/razi/840AA8230AA813E8/RAZI ALL FILES/RAZI EFX GAMEFILES AND CLEOS VC/ALL PROJECTS/Discord Bots/Nexa-Music/src/settings/config.ts):
+Update [src/settings/config.ts]:
 
 - `clientid`
 - `prefix`
